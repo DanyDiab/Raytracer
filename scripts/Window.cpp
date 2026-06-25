@@ -5,15 +5,13 @@
 int Window::createWindow(){
 
     if (!glfwInit()) return -1;
-
     window = glfwCreateWindow(960, 540, "RayTracer", NULL, NULL);
 
     if (!window){
         glfwTerminate();
         return -1;
     }
-
-
+    
     glfwMakeContextCurrent(window);
 
     while (!glfwWindowShouldClose(window))
