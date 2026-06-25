@@ -1,29 +1,42 @@
 #include <GLFW/glfw3.h>
+#include <memory>
+#include "./headers/Window.hpp"
 
-int main(int argc, char** argv){
+int Window::createWindow(){
 
-    GLFWwindow* window;
-
-    if (!glfwInit())
-        return -1;
+    if (!glfwInit()) return -1;
 
     window = glfwCreateWindow(960, 540, "RayTracer", NULL, NULL);
 
-     if (!window)
-    {
+    if (!window){
         glfwTerminate();
         return -1;
     }
+
 
     glfwMakeContextCurrent(window);
 
     while (!glfwWindowShouldClose(window))
     {
-        glfwSwapBuffers(window);
 
-        glfwPollEvents();
     }
 
     glfwTerminate();
+    return 0;
+}
+
+
+int Window::updateWindow(){
+    int status = glfwWindowShouldClose(window);
+
+    glfwSwapBuffers(window);
+
+    glfwPollEvents();
+    return status;
+}
+
+
+int Window::destroyWindow(){
+    glfwDestroyWindow(window);
     return 0;
 }

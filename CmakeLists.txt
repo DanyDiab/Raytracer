@@ -9,6 +9,7 @@ set(SCRIPTSDIR "./scripts")
 find_package(glfw3 3.3.10 REQUIRED)
 
 add_executable(Raytracer 
-"${SCRIPTSDIR}/Window.cpp")
+"${SCRIPTSDIR}/Window.cpp"
+"${SCRIPTSDIR}/Main.cpp")
 
 target_link_libraries(Raytracer PRIVATE glfw)
