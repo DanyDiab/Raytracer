@@ -1,5 +1,7 @@
 #include "headers/Camera.hpp"
 #include "headers/Transform.hpp"
+#include <cmath>
+#include <cuda_runtime_api.h>
 #include <glm/common.hpp>
 #include <glm/ext/quaternion_common.hpp>
 #include <glm/vec3.hpp>
@@ -8,7 +10,9 @@
 #include <vector>
 
 #include "headers/Ray.hpp"
-
+#include <cuda_runtime.h>
+#include <device_launch_parameters.h>
+#include <cuda/std/cmath>
 
 Camera::Camera(ViewportInfo vi) {
     transform = {
@@ -30,6 +34,21 @@ Camera::Camera(ViewportInfo vi, glm::vec3 pos, glm::quat rot){
     viewportInfo = std::make_unique<ViewportInfo>(vi);
 }
 
+
+__global__ void sendRays(Raytracer::Ray* rays, glm::vec3 forward, int width, int height, int left, int bot, float z){
+    int index = threadIdx.x + (blockDim.x * blockIdx.x);
+    if(index < width * height){
+        int x = index % width;
+        int y = index / width;
+
+        rays[index].dir = forward;
+        rays[index].origin.x = x + left;
+        rays[index].origin.y = y + bot; 
+        rays[index].origin.z = z;
+    }
+
+}
+
 // send viewport height * width rays into the scene, from the camera to each pixel
 // orthographic projection
 void Camera::generateRays(){
@@ -39,16 +58,24 @@ void Camera::generateRays(){
     float left = transform.position.x - (width / 2);
     float bot = transform.position.y - (height / 2);
 
+    int size = width * height;
 
-    rays.reserve(width * height);
+    rays = std::vector<Raytracer::Ray>(size);
 
-    for(int y = 0; y < height; y++){
-        for(int x = 0; x < width; x++){
-            glm::vec3 pos = glm::vec3(x + left, y + bot, transform.position.z);
-            Raytracer::Ray ray(pos,transform.forward());
-            rays.push_back(ray);
-        }
-    }
+    Raytracer::Ray* rawRay = nullptr;
+    cudaMallocManaged(&rawRay, size * sizeof(Raytracer::Ray));
+
+    int threads = 256;
+    int blocks = (size + threads - 1) / threads;
+    sendRays<<<blocks, threads>>>(rawRay,transform.forward(),width,height,left,bot,transform.position.z);
+
+    cudaDeviceSynchronize();
+
+    rays.resize(size);
+    std::copy(rawRay, rawRay + size, rays.begin());
+
+    cudaFree(rawRay);
+
 }
 
 void writeColorsToPPM(std::vector<glm::vec3> colors, float height, float width){
@@ -64,7 +91,6 @@ void writeColorsToPPM(std::vector<glm::vec3> colors, float height, float width){
         std::cout << ir << ' ' << ig << ' ' << ib << '\n';
     }
     std::cout << std::flush;
-
 }
 
 void Camera::shootRays(){
