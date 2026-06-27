@@ -19,5 +19,17 @@ namespace Raytracer{
 
             return translateMat * rotationMat * scaleMat;
         }
+
+        glm::vec3 forward() const{
+            return rotation * glm::vec3(0,0,-1);
+        }
+
+        glm::vec3 right() const{
+            return rotation * glm::vec3(1,0,0);
+        }
+
+        glm::vec3 up() const{
+            return rotation * glm::vec3(0,1,0);
+        }
     };
 }

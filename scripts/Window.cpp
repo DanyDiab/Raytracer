@@ -9,18 +9,13 @@ int Window::createWindow(){
 
     if (!window){
         glfwTerminate();
-        return -1;
+        return 0;
     }
     
     glfwMakeContextCurrent(window);
 
-    while (!glfwWindowShouldClose(window))
-    {
 
-    }
-
-    glfwTerminate();
-    return 0;
+    return 1;
 }
 
 
@@ -30,11 +25,13 @@ int Window::updateWindow(){
     glfwSwapBuffers(window);
 
     glfwPollEvents();
-    return status;
+    return status == 0;
 }
 
 
 int Window::destroyWindow(){
-    glfwDestroyWindow(window);
+    glfwTerminate();
+
+    // glfwDestroyWindow(window);
     return 0;
 }
