@@ -5,6 +5,7 @@
 #include <cuda_runtime_api.h>
 #include <glm/common.hpp>
 #include <glm/ext/quaternion_common.hpp>
+#include <glm/ext/quaternion_geometric.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include <glm/vec3.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -37,16 +38,20 @@ Camera::Camera(ViewportInfo vi, glm::vec3 pos, glm::quat rot){
 }
 
 
-__global__ void sendRays(Raytracer::Ray* rays, glm::vec3 forward, int width, int height, int left, int bot, float z){
+__global__ void sendRays(Raytracer::Ray* rays, glm::vec3 forward, glm::vec3 right, glm::vec3 up, int width, int height, glm::vec3 camPos, float leftOffset, float botOffset){
     int index = threadIdx.x + (blockDim.x * blockIdx.x);
     if(index < width * height){
         int x = index % width;
         int y = index / width;
 
+        float localX = leftOffset + (float)x;
+        float localY = botOffset + (float)y;
+
+        glm::vec3 origin = camPos + (up * localY) + right * (localX);
+
         rays[index].dir = forward;
-        rays[index].origin.x = x + left;
-        rays[index].origin.y = y + bot; 
-        rays[index].origin.z = z;
+        rays[index].origin = origin;
+
     }
 }
 
@@ -68,7 +73,7 @@ void Camera::generateRays(){
 
     int threads = 256;
     int blocks = (size + threads - 1) / threads;
-    sendRays<<<blocks, threads>>>(rawRay,transform.forward(),width,height,left,bot,transform.position.z);
+    sendRays<<<blocks, threads>>>(rawRay,transform.forward(),transform.right(), transform.up(),width,height,transform.position,left,bot);
 
     cudaDeviceSynchronize();
 
@@ -80,21 +85,25 @@ void Camera::generateRays(){
 }
 
 float raySphereCollide(Sphere sphere, Raytracer::Ray ray){
-    glm::vec3 offset = sphere.position - ray.origin;
+    glm::vec3 offset = sphere.transform.position - ray.origin;
 
     float a = glm::dot(ray.dir, ray.dir);
-    float b = -2 * glm::dot(ray.dir, offset);
-    float c = glm::dot(offset,offset) - (sphere.radius * sphere.radius);
+    float b = -2.0f * glm::dot(ray.dir, offset);
+    float c = glm::dot(offset,offset) - (sphere.transform.scale.x * sphere.transform.scale.x);
 
     float discriminant = b * b - 4 * a * c;
     // missed
-    if(discriminant < 0){
-        return -1;
+    if(discriminant < 0.0f){
+        return -1.0f;
     }
-    float t = -b - std::sqrt(discriminant) / 2 * a;
 
-    // return t if in fron of the ray, and -1 if the ray is behind the sphere
-    return t >= 0.0f ? t : -1;
+
+    float t = (-b - std::sqrt(discriminant)) / (2.0f * a);
+    
+    // the roots are all behind this ray
+    if(t < 0.0f) return -1.0f;
+    
+    return t;
 }
 
 void writeColorsToPPM(std::vector<glm::vec3> colors, float height, float width){
@@ -127,14 +136,16 @@ void Camera::shootRays(Sphere sphere){
 
     for(int i = 0; i < size; i++){
         Raytracer::Ray ray = rays.at(i);
-        float hit = raySphereCollide(sphere, ray);
+        float hitDistance = raySphereCollide(sphere, ray);
         // if missed
-        if(hit == -1){
+        if(hitDistance < 0){
             colors.push_back(topColor);
         }
         // hit
         else{
-            colors.push_back(botColor);
+            glm::vec3 hitPoint = ray.origin + (ray.dir * hitDistance);
+            glm::vec3 normal = glm::normalize(hitPoint - sphere.transform.position);
+            colors.push_back(normal * .5f + glm::vec3(.5f));
         }
 
     }
