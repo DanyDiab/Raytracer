@@ -21,7 +21,7 @@ namespace Raytracer{
         }
 
         glm::vec3 forward() const{
-            return rotation * glm::vec3(0,0,-1);
+            return rotation * glm::vec3(0,0,1);
         }
 
         glm::vec3 right() const{

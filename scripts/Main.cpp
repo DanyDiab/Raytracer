@@ -18,9 +18,9 @@ int main(int argc, char** argv){
         .height = 200
     };
     
-    Camera cam(vi,glm::vec3(0,0,-1), glm::quat(glm::vec3(0,0,1)));
+    Camera cam(vi,glm::vec3(0,0,-10), glm::quat(glm::vec3(0,0,1)));
 
-    Sphere sphere = Sphere(glm::vec3(0,0,0), 20.0f);
+    Sphere sphere = Sphere(glm::vec3(20,0,0), 20.0f);
     cam.generateRays();
     cam.shootRays(sphere);
 

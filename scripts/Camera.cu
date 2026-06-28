@@ -79,7 +79,7 @@ void Camera::generateRays(){
 
 }
 
-bool raySphereCollide(Sphere sphere, Raytracer::Ray ray){
+float raySphereCollide(Sphere sphere, Raytracer::Ray ray){
     glm::vec3 offset = sphere.position - ray.origin;
 
     float a = glm::dot(ray.dir, ray.dir);
@@ -87,7 +87,14 @@ bool raySphereCollide(Sphere sphere, Raytracer::Ray ray){
     float c = glm::dot(offset,offset) - (sphere.radius * sphere.radius);
 
     float discriminant = b * b - 4 * a * c;
-    return discriminant >= 0;
+    // missed
+    if(discriminant < 0){
+        return -1;
+    }
+    float t = -b - std::sqrt(discriminant) / 2 * a;
+
+    // return t if in fron of the ray, and -1 if the ray is behind the sphere
+    return t >= 0.0f ? t : -1;
 }
 
 void writeColorsToPPM(std::vector<glm::vec3> colors, float height, float width){
@@ -106,8 +113,8 @@ void writeColorsToPPM(std::vector<glm::vec3> colors, float height, float width){
 }
 
 void Camera::shootRays(Sphere sphere){
-    glm::vec3 topColor = glm::vec3(1,0,0);
-    glm::vec3 botColor = glm::vec3(0,0,1);
+    glm::vec3 topColor = glm::vec3(0,0,0);
+    glm::vec3 botColor = glm::vec3(1,0,0);
 
     float width = viewportInfo->width;
     float height = viewportInfo->height;
@@ -120,9 +127,12 @@ void Camera::shootRays(Sphere sphere){
 
     for(int i = 0; i < size; i++){
         Raytracer::Ray ray = rays.at(i);
-        if(raySphereCollide(sphere, ray)){
+        float hit = raySphereCollide(sphere, ray);
+        // if missed
+        if(hit == -1){
             colors.push_back(topColor);
         }
+        // hit
         else{
             colors.push_back(botColor);
         }
