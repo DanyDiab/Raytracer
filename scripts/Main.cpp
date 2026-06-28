@@ -1,5 +1,8 @@
 #include "./headers/Window.hpp"
 #include "headers/Camera.hpp"
+#include "headers/Sphere.hpp"
+#include <glm/ext/vector_float3.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <iostream>
 #include <system_error>
 
@@ -15,9 +18,13 @@ int main(int argc, char** argv){
         .height = 200
     };
     
-    Camera cam(vi);
+    Camera cam(vi,glm::vec3(0,0,-1), glm::quat(glm::vec3(0,0,1)));
+
+    Sphere sphere = Sphere(glm::vec3(0,0,0), 20.0f);
     cam.generateRays();
-    cam.shootRays();
+    cam.shootRays(sphere);
+
+
     while(window.updateWindow()){
 
     }

@@ -1,9 +1,11 @@
 #include "headers/Camera.hpp"
+#include "headers/Sphere.hpp"
 #include "headers/Transform.hpp"
 #include <cmath>
 #include <cuda_runtime_api.h>
 #include <glm/common.hpp>
 #include <glm/ext/quaternion_common.hpp>
+#include <glm/ext/vector_float3.hpp>
 #include <glm/vec3.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <memory>
@@ -46,7 +48,6 @@ __global__ void sendRays(Raytracer::Ray* rays, glm::vec3 forward, int width, int
         rays[index].origin.y = y + bot; 
         rays[index].origin.z = z;
     }
-
 }
 
 // send viewport height * width rays into the scene, from the camera to each pixel
@@ -78,6 +79,17 @@ void Camera::generateRays(){
 
 }
 
+bool raySphereCollide(Sphere sphere, Raytracer::Ray ray){
+    glm::vec3 offset = sphere.position - ray.origin;
+
+    float a = glm::dot(ray.dir, ray.dir);
+    float b = -2 * glm::dot(ray.dir, offset);
+    float c = glm::dot(offset,offset) - (sphere.radius * sphere.radius);
+
+    float discriminant = b * b - 4 * a * c;
+    return discriminant >= 0;
+}
+
 void writeColorsToPPM(std::vector<glm::vec3> colors, float height, float width){
     std::cout << "P3\n" << width << ' ' << height << "\n255\n";
 
@@ -93,7 +105,7 @@ void writeColorsToPPM(std::vector<glm::vec3> colors, float height, float width){
     std::cout << std::flush;
 }
 
-void Camera::shootRays(){
+void Camera::shootRays(Sphere sphere){
     glm::vec3 topColor = glm::vec3(1,0,0);
     glm::vec3 botColor = glm::vec3(0,0,1);
 
@@ -106,17 +118,15 @@ void Camera::shootRays(){
     std::vector<glm::vec3> colors;
     colors.reserve(size);
 
-
-
     for(int i = 0; i < size; i++){
         Raytracer::Ray ray = rays.at(i);
-        
-        float currY = ray.origin.y;
-        
-        float t = (currY - bot) / height;
+        if(raySphereCollide(sphere, ray)){
+            colors.push_back(topColor);
+        }
+        else{
+            colors.push_back(botColor);
+        }
 
-        glm::vec3 blended = glm::mix(botColor,topColor, t);
-        colors.push_back(blended);
     }
     writeColorsToPPM(colors, height, width);
 }

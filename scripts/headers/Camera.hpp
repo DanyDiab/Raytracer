@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Ray.hpp"
+#include "Sphere.hpp"
 #include "Transform.hpp"
 #include <glm/vec3.hpp>
 #include <memory>
@@ -25,7 +26,7 @@ class Camera{
         glm::vec3 viewportPos;
 
         void generateRays();
-        void shootRays();
+        void shootRays(Sphere sphere);
     private:
         Raytracer::Transform transform;
         std::vector<Raytracer::Ray> rays;
