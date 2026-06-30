@@ -14,7 +14,6 @@ int Window::createWindow(){
     
     glfwMakeContextCurrent(window);
 
-
     return 1;
 }
 

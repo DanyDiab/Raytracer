@@ -1,4 +1,5 @@
 #include "headers/Camera.hpp"
+#include "headers/Hittable.hpp"
 #include "headers/Sphere.hpp"
 #include "headers/Transform.hpp"
 #include <cmath>
@@ -84,27 +85,7 @@ void Camera::generateRays(){
 
 }
 
-float raySphereCollide(Sphere sphere, Raytracer::Ray ray){
-    glm::vec3 offset = sphere.transform.position - ray.origin;
 
-    float a = glm::dot(ray.dir, ray.dir);
-    float b = -2.0f * glm::dot(ray.dir, offset);
-    float c = glm::dot(offset,offset) - (sphere.transform.scale.x * sphere.transform.scale.x);
-
-    float discriminant = b * b - 4 * a * c;
-    // missed
-    if(discriminant < 0.0f){
-        return -1.0f;
-    }
-
-
-    float t = (-b - std::sqrt(discriminant)) / (2.0f * a);
-    
-    // the roots are all behind this ray
-    if(t < 0.0f) return -1.0f;
-    
-    return t;
-}
 
 void writeColorsToPPM(std::vector<glm::vec3> colors, float height, float width){
     std::cout << "P3\n" << width << ' ' << height << "\n255\n";
@@ -121,7 +102,7 @@ void writeColorsToPPM(std::vector<glm::vec3> colors, float height, float width){
     std::cout << std::flush;
 }
 
-void Camera::shootRays(Sphere sphere){
+void Camera::shootRays(std::vector<Raytracer::Hittable> hittables){
     glm::vec3 topColor = glm::vec3(0,0,0);
     glm::vec3 botColor = glm::vec3(1,0,0);
 
@@ -135,19 +116,20 @@ void Camera::shootRays(Sphere sphere){
     colors.reserve(size);
 
     for(int i = 0; i < size; i++){
-        Raytracer::Ray ray = rays.at(i);
-        float hitDistance = raySphereCollide(sphere, ray);
-        // if missed
-        if(hitDistance < 0){
-            colors.push_back(topColor);
+        for(const auto& shape: hittables){
+            Raytracer::Ray ray = rays.at(i);
+            float hitDistance = shape.rayCollide(ray);
+            // if missed
+            if(hitDistance < 0){
+                colors.push_back(topColor);
+            }
+            // hit
+            else{
+                glm::vec3 hitPoint = ray.origin + (ray.dir * hitDistance);
+                glm::vec3 normal = glm::normalize(hitPoint - shape.transform.position);
+                colors.push_back(normal * .5f + glm::vec3(.5f));
+            }
         }
-        // hit
-        else{
-            glm::vec3 hitPoint = ray.origin + (ray.dir * hitDistance);
-            glm::vec3 normal = glm::normalize(hitPoint - sphere.transform.position);
-            colors.push_back(normal * .5f + glm::vec3(.5f));
-        }
-
     }
     writeColorsToPPM(colors, height, width);
 }

@@ -26,7 +26,7 @@ class Camera{
         glm::vec3 viewportPos;
 
         void generateRays();
-        void shootRays(Sphere sphere);
+        void shootRays(std::vector<Raytracer::Hittable>);
     private:
         Raytracer::Transform transform;
         std::vector<Raytracer::Ray> rays;
