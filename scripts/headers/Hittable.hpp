@@ -6,10 +6,10 @@
 namespace Raytracer{
     class Hittable{
         public:
-            Hittable();
+            Hittable() = default;
             virtual ~Hittable();
 
-            virtual float rayCollide(const Raytracer::Ray ray) const;
+            virtual float rayCollide(const Raytracer::Ray ray) const = 0;
             Raytracer::Transform transform;
             Material mat;
     };

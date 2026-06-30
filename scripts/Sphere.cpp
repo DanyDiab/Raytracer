@@ -20,8 +20,12 @@ Sphere::Sphere(glm::vec3 pos, glm::quat rot, glm::vec3 scale){
     };
 }
 
+Sphere::~Sphere(){
+    
+}
 
-float Sphere::rayCollide(Raytracer::Ray ray){
+
+float Sphere::rayCollide(const Raytracer::Ray ray) const {
     glm::vec3 offset = transform.position - ray.origin;
 
     float a = glm::dot(ray.dir, ray.dir);

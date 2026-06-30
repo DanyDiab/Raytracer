@@ -11,7 +11,7 @@ namespace Raytracer{
         glm::vec3 dir;
         
         Ray() = default;
-        Ray(glm::vec3 origin, glm::vec3 dir){
+        inline Ray(glm::vec3 origin, glm::vec3 dir){
             this->origin = origin;
             float mag = glm::length(dir);
             // normalize

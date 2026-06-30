@@ -102,9 +102,8 @@ void writeColorsToPPM(std::vector<glm::vec3> colors, float height, float width){
     std::cout << std::flush;
 }
 
-void Camera::shootRays(std::vector<Raytracer::Hittable> hittables){
-    glm::vec3 topColor = glm::vec3(0,0,0);
-    glm::vec3 botColor = glm::vec3(1,0,0);
+void Camera::shootRays(const std::vector<std::shared_ptr<Raytracer::Hittable>>& hittables){
+    glm::vec3 backgroundColor = glm::vec3(0,0,0);
 
     float width = viewportInfo->width;
     float height = viewportInfo->height;
@@ -116,20 +115,33 @@ void Camera::shootRays(std::vector<Raytracer::Hittable> hittables){
     colors.reserve(size);
 
     for(int i = 0; i < size; i++){
+        Raytracer::Ray ray = rays.at(i);
+
+        float closestHit = std::numeric_limits<float>::max();
+        std::shared_ptr<Raytracer::Hittable> closestShape;
+        bool foundHit = false;
         for(const auto& shape: hittables){
-            Raytracer::Ray ray = rays.at(i);
-            float hitDistance = shape.rayCollide(ray);
+            float hitDistance = shape->rayCollide(ray);
             // if missed
             if(hitDistance < 0){
-                colors.push_back(topColor);
+                continue;
             }
             // hit
-            else{
-                glm::vec3 hitPoint = ray.origin + (ray.dir * hitDistance);
-                glm::vec3 normal = glm::normalize(hitPoint - shape.transform.position);
-                colors.push_back(normal * .5f + glm::vec3(.5f));
+            else if(hitDistance < closestHit){
+                foundHit = true;
+                closestShape = shape;
+                closestHit = hitDistance;
             }
         }
+        if(foundHit){
+            glm::vec3 hitPoint = ray.origin + (ray.dir * closestHit);
+            glm::vec3 normal = glm::normalize(hitPoint - closestShape->transform.position);
+            colors.push_back(closestShape->mat.color);
+        }
+        else{
+            colors.push_back(backgroundColor);
+        }
+
     }
     writeColorsToPPM(colors, height, width);
 }

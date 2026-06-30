@@ -10,7 +10,7 @@ class Sphere : public Raytracer::Hittable{
         // sphere at (0,0,0) with radius 1, with no rotation
         Sphere();
         ~Sphere();
-        float rayCollide(Raytracer::Ray ray);
+        float rayCollide(Raytracer::Ray ray) const override;
 
     private:
 };

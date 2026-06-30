@@ -14,7 +14,8 @@ add_executable(Raytracer
 "${SCRIPTSDIR}/Window.cpp"
 "${SCRIPTSDIR}/Main.cpp"
 "${SCRIPTSDIR}/Camera.cu"
-"${SCRIPTSDIR}/Sphere.cpp")
+"${SCRIPTSDIR}/Sphere.cpp"
+"${SCRIPTSDIR}/Hittable.cpp")
 
 target_include_directories(Raytracer PRIVATE "${SCRIPTSDIR}/headers")
 
