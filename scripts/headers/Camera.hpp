@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cuda_runtime.h>
+#include "HitRecord.hpp"
 #include "Ray.hpp"
 #include "Sphere.cuh"
 #include "Transform.hpp"
@@ -28,10 +29,12 @@ class Camera{
         glm::vec3 viewportPos;
 
         void generateRays();
-        void shootRays(const std::vector<std::shared_ptr<Raytracer::Hittable>>& objects);
+        void shootRays(const std::vector<std::shared_ptr<Raytracer::Hittable*>>& objects);
+        std::vector<Raytracer::HitRecord> launchCollisionKernel(const std::vector<std::shared_ptr<Raytracer::Hittable*>>& hittables);
+
     private:
         Raytracer::Transform transform;
-        std::vector<Raytracer::Ray> rays;
+        std::vector<Raytracer::Ray*> rays;
         
 
 };

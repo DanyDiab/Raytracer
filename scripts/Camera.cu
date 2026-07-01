@@ -1,6 +1,7 @@
 #include <cuda_runtime.h>
 
 #include "headers/Camera.hpp"
+#include "headers/HitRecord.hpp"
 #include "headers/Hittable.cuh"
 #include "headers/Transform.hpp"
 #include <cmath>
@@ -68,14 +69,14 @@ void Camera::generateRays(){
 
     int size = width * height;
 
-    rays = std::vector<Raytracer::Ray>(size);
+    rays = std::vector<Raytracer::Ray*>(size);
 
-    Raytracer::Ray* rawRay = nullptr;
+    Raytracer::Ray** rawRay = nullptr;
     cudaMallocManaged(&rawRay, size * sizeof(Raytracer::Ray));
 
     int threads = 256;
     int blocks = (size + threads - 1) / threads;
-    sendRays<<<blocks, threads>>>(rawRay,transform.forward(),transform.right(), transform.up(),width,height,transform.position,left,bot);
+    sendRays<<<blocks, threads>>>(*rawRay,transform.forward(),transform.right(), transform.up(),width,height,transform.position,left,bot);
 
     cudaDeviceSynchronize();
 
@@ -85,24 +86,67 @@ void Camera::generateRays(){
     cudaFree(rawRay);
 }
 
-__global__ void RayHittableCollision(Raytracer::Ray** rays, int numRays, Raytracer::Hittable** hittables, int numHittables){
+__global__ void RayHittableCollision(Raytracer::Ray** rays, int numRays, Raytracer::Hittable** hittables, int numHittables, Raytracer::HitRecord** records){
     int index = threadIdx.x + (blockDim.x * blockIdx.x);
 
-    if(index < numRays * numHittables){
-        int rayIndex = index / numRays;
-        int shapeIndex = index / numHittables;
-
-        Raytracer::Ray* ray = rays[rayIndex];
-        Raytracer::Hittable* shape = hittables[shapeIndex];
-
-        // if(shape->rayCollide(const Raytracer::Ray ray))
-
+    // invalid index
+    if(index >= numRays * numHittables){
+        return;
     }
 
+    int rayIndex = index / numRays;
+    int shapeIndex = index / numHittables;
 
+    Raytracer::Ray* ray = rays[rayIndex];
+    Raytracer::Hittable* shape = hittables[shapeIndex];
+    Raytracer::HitRecord* record = records[shapeIndex];
+
+    float rayHitDistance = shape->rayCollide(ray);
+
+    // found closer hit point
+    if(rayHitDistance != -1 && rayHitDistance < record->hitDistance){
+        record->ray = ray;
+        record->hitDistance = rayHitDistance;
+    }
 }
 
-void RayHittableCollisions(const std::vector<std::shared_ptr<Raytracer::Hittable>>& hittables){
+std::vector<Raytracer::HitRecord> Camera::launchCollisionKernel(const std::vector<std::shared_ptr<Raytracer::Hittable*>>& hittables){
+
+    Raytracer::Ray** raysLocal = nullptr;
+    int numRays = rays.size();
+
+    int rayBytes = numRays * sizeof(Raytracer::Ray*);
+
+    cudaMallocManaged(raysLocal, rayBytes);
+    raysLocal = rays.data();
+
+    Raytracer::Hittable** hittableLocal; 
+    int numHittables = hittables.size();
+
+    cudaMallocManaged(raysLocal, rayBytes);
+    hittableLocal = hittables.data()->get();
+
+    Raytracer::HitRecord* localRecords = nullptr;
+
+    cudaMallocManaged(&localRecords, numHittables * sizeof(Raytracer::HitRecord));
+
+
+    int threads = 256;
+    int blocks = (numHittables * numRays + threads - 1) / threads;
+    RayHittableCollision<<<threads, blocks >>>(raysLocal, numRays, hittableLocal, numHittables, &localRecords);
+
+    cudaDeviceSynchronize();
+
+    std::vector<Raytracer::HitRecord> records;
+
+    std::copy(localRecords, localRecords + numHittables, records.begin());
+
+    cudaFree(localRecords);
+    cudaFree(hittableLocal);
+    cudaFree(raysLocal);
+
+    return records;
+
 
 }
 
@@ -124,7 +168,7 @@ void writeColorsToPPM(std::vector<glm::vec3> colors, float height, float width){
     std::cout << std::flush;
 }
 
-void Camera::shootRays(const std::vector<std::shared_ptr<Raytracer::Hittable>>& hittables){
+void Camera::shootRays(const std::vector<std::shared_ptr<Raytracer::Hittable*>>& hittables){
     glm::vec3 backgroundColor = glm::vec3(0,0,0);
 
     float width = viewportInfo->width;
@@ -136,37 +180,39 @@ void Camera::shootRays(const std::vector<std::shared_ptr<Raytracer::Hittable>>& 
     std::vector<glm::vec3> colors;
     colors.reserve(size);
 
-    for(int i = 0; i < size; i++){
-        Raytracer::Ray ray = rays.at(i);
+    
+    launchCollisionKernel(hittables);
+    // for(int i = 0; i < size; i++){
+    //     Raytracer::Ray* ray = rays.at(i);
 
-        float closestHit = std::numeric_limits<float>::max();
-        std::shared_ptr<Raytracer::Hittable> closestShape;
-        bool foundHit = false;
-        for(const auto& shape: hittables){
-            float hitDistance = shape->rayCollide(ray);
-            // if missed
-            if(hitDistance < 0){
-                continue;
-            }
-            // hit
-            else if(hitDistance < closestHit){
-                foundHit = true;
-                closestShape = shape;
-                closestHit = hitDistance;
-            }
-        }
-        if(foundHit){
-            glm::vec3 hitPoint = ray.origin + (ray.dir * closestHit);
-            if(closestShape->shapeType == Raytracer::SHAPE_SPHERE){
-                glm::vec3 normal = glm::normalize(hitPoint - closestShape->Geometry.sphere.position);
-                colors.push_back(closestShape->mat.color);
-            }
-        }
-        else{
-            colors.push_back(backgroundColor);
-        }
+    //     float closestHit = std::numeric_limits<float>::max();
+    //     std::shared_ptr<Raytracer::Hittable> closestShape;
+    //     bool foundHit = false;
+    //     for(const auto& shape: hittables){
+    //         float hitDistance = shape->rayCollide(ray);
+    //         // if missed
+    //         if(hitDistance < 0){
+    //             continue;
+    //         }
+    //         // hit
+    //         else if(hitDistance < closestHit){
+    //             foundHit = true;
+    //             closestShape = shape;
+    //             closestHit = hitDistance;
+    //         }
+    //     }
+    //     if(foundHit){
+    //         glm::vec3 hitPoint = ray->origin + (ray->dir * closestHit);
+    //         if(closestShape->shapeType == Raytracer::SHAPE_SPHERE){
+    //             glm::vec3 normal = glm::normalize(hitPoint - closestShape->Geometry.sphere.position);
+    //             colors.push_back(closestShape->mat.color);
+    //         }
+    //     }
+    //     else{
+    //         colors.push_back(backgroundColor);
+    //     }
 
-    }
+    // }
     writeColorsToPPM(colors, height, width);
 }
 

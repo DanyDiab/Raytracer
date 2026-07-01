@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+set(CMAKE_CUDA_SEPARATE_COMPILATION ON)
 
 set(SCRIPTSDIR "./scripts")
 
@@ -14,12 +15,22 @@ add_executable(Raytracer
 "${SCRIPTSDIR}/Window.cpp"
 "${SCRIPTSDIR}/Main.cpp"
 "${SCRIPTSDIR}/Camera.cu"
-"${SCRIPTSDIR}/Sphere.cpp"
-"${SCRIPTSDIR}/Hittable.cpp")
+"${SCRIPTSDIR}/Sphere.cu"
+"${SCRIPTSDIR}/Hittable.cu")
+
+set_target_properties(Raytracer PROPERTIES 
+    CUDA_SEPARATE_COMPILATION ON
+    CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    LINKER_LANGUAGE CUDA
+)
+
 
 target_include_directories(Raytracer PRIVATE "${SCRIPTSDIR}/headers")
+
+target_compile_options(Raytracer PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--relocatable-device-code=true>)
 
 target_link_libraries(Raytracer PRIVATE glfw)
 target_link_libraries(Raytracer PRIVATE cuda cudart)
 
 target_compile_options(Raytracer PRIVATE -g)
+

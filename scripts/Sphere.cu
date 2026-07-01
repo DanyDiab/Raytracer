@@ -1,18 +1,18 @@
 
 #include "headers/Ray.hpp"
 #include "headers/Transform.hpp"
-#include <cuda_runtime.h>
 #include "headers/Sphere.cuh"
+#include <glm/vec3.hpp>
 
+__device__ float SphereRayCollide(const Sphere sphere, const Raytracer::Ray* ray) {
+    glm::vec3 offset = sphere.position - ray->origin;
 
-__device__ float SphereRayCollide(const Sphere sphere, const Raytracer::Ray ray) {
-    glm::vec3 offset = sphere.position - ray.origin;
-
-    float a = glm::dot(ray.dir, ray.dir);
-    float b = -2.0f * glm::dot(ray.dir, offset);
+    float a = glm::dot(ray->dir, ray->dir);
+    float b = -2.0f * glm::dot(ray->dir, offset);
     float c = glm::dot(offset,offset) - (sphere.radius * sphere.radius);
 
     float discriminant = b * b - 4 * a * c;
+    
     // missed
     if(discriminant < 0.0f){
         return -1.0f;
