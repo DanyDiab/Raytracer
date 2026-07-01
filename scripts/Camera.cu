@@ -1,6 +1,7 @@
+#include <cuda_runtime.h>
+
 #include "headers/Camera.hpp"
-#include "headers/Hittable.hpp"
-#include "headers/Sphere.hpp"
+#include "headers/Hittable.cuh"
 #include "headers/Transform.hpp"
 #include <cmath>
 #include <cuda_runtime_api.h>
@@ -82,8 +83,29 @@ void Camera::generateRays(){
     std::copy(rawRay, rawRay + size, rays.begin());
 
     cudaFree(rawRay);
+}
+
+__global__ void RayHittableCollision(Raytracer::Ray** rays, int numRays, Raytracer::Hittable** hittables, int numHittables){
+    int index = threadIdx.x + (blockDim.x * blockIdx.x);
+
+    if(index < numRays * numHittables){
+        int rayIndex = index / numRays;
+        int shapeIndex = index / numHittables;
+
+        Raytracer::Ray* ray = rays[rayIndex];
+        Raytracer::Hittable* shape = hittables[shapeIndex];
+
+        // if(shape->rayCollide(const Raytracer::Ray ray))
+
+    }
+
 
 }
+
+void RayHittableCollisions(const std::vector<std::shared_ptr<Raytracer::Hittable>>& hittables){
+
+}
+
 
 
 
@@ -135,8 +157,10 @@ void Camera::shootRays(const std::vector<std::shared_ptr<Raytracer::Hittable>>& 
         }
         if(foundHit){
             glm::vec3 hitPoint = ray.origin + (ray.dir * closestHit);
-            glm::vec3 normal = glm::normalize(hitPoint - closestShape->transform.position);
-            colors.push_back(closestShape->mat.color);
+            if(closestShape->shapeType == Raytracer::SHAPE_SPHERE){
+                glm::vec3 normal = glm::normalize(hitPoint - closestShape->Geometry.sphere.position);
+                colors.push_back(closestShape->mat.color);
+            }
         }
         else{
             colors.push_back(backgroundColor);

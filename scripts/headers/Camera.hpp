@@ -1,11 +1,13 @@
 #pragma once
 
+#include <cuda_runtime.h>
 #include "Ray.hpp"
-#include "Sphere.hpp"
+#include "Sphere.cuh"
 #include "Transform.hpp"
 #include <glm/vec3.hpp>
 #include <memory>
 #include <vector>
+#include "Hittable.cuh"
 
 
 struct ViewportInfo{
