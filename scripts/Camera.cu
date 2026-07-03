@@ -69,14 +69,15 @@ void Camera::generateRays(){
 
     int size = width * height;
 
-    rays = std::vector<Raytracer::Ray*>(size);
+    rays = std::vector<Raytracer::Ray>(size);
 
-    Raytracer::Ray** rawRay = nullptr;
+    Raytracer::Ray* rawRay = nullptr;
+
     cudaMallocManaged(&rawRay, size * sizeof(Raytracer::Ray));
 
     int threads = 256;
     int blocks = (size + threads - 1) / threads;
-    sendRays<<<blocks, threads>>>(*rawRay,transform.forward(),transform.right(), transform.up(),width,height,transform.position,left,bot);
+    sendRays<<<blocks, threads>>>(rawRay,transform.forward(),transform.right(), transform.up(),width,height,transform.position,left,bot);
 
     cudaDeviceSynchronize();
 
@@ -86,7 +87,7 @@ void Camera::generateRays(){
     cudaFree(rawRay);
 }
 
-__global__ void RayHittableCollision(Raytracer::Ray** rays, int numRays, Raytracer::Hittable** hittables, int numHittables, Raytracer::HitRecord** records){
+__global__ void RayHittableCollision(Raytracer::Ray* rays, int numRays, Raytracer::Hittable* hittables, int numHittables, Raytracer::HitRecord** records){
     int index = threadIdx.x + (blockDim.x * blockIdx.x);
 
     // invalid index
@@ -94,14 +95,14 @@ __global__ void RayHittableCollision(Raytracer::Ray** rays, int numRays, Raytrac
         return;
     }
 
-    int rayIndex = index / numRays;
+    int rayIndex = index % numRays;
     int shapeIndex = index / numHittables;
 
-    Raytracer::Ray* ray = rays[rayIndex];
-    Raytracer::Hittable* shape = hittables[shapeIndex];
+    Raytracer::Ray& ray = rays[rayIndex];
+    Raytracer::Hittable& shape = hittables[shapeIndex];
     Raytracer::HitRecord* record = records[shapeIndex];
 
-    float rayHitDistance = shape->rayCollide(ray);
+    float rayHitDistance = shape.rayCollide(ray);
 
     // found closer hit point
     if(rayHitDistance != -1 && rayHitDistance < record->hitDistance){
@@ -112,23 +113,23 @@ __global__ void RayHittableCollision(Raytracer::Ray** rays, int numRays, Raytrac
 
 std::vector<Raytracer::HitRecord> Camera::launchCollisionKernel(const std::vector<std::shared_ptr<Raytracer::Hittable*>>& hittables){
 
-    Raytracer::Ray** raysLocal = nullptr;
+    Raytracer::Ray* raysLocal = nullptr;
     int numRays = rays.size();
 
     int rayBytes = numRays * sizeof(Raytracer::Ray*);
 
-    cudaMallocManaged(raysLocal, rayBytes);
+    cudaMallocManaged(&raysLocal, rayBytes);
     raysLocal = rays.data();
 
-    Raytracer::Hittable** hittableLocal; 
+    Raytracer::Hittable* hittableLocal; 
     int numHittables = hittables.size();
 
-    cudaMallocManaged(raysLocal, rayBytes);
-    hittableLocal = hittables.data()->get();
+    cudaMallocManaged(&raysLocal, rayBytes);
+    hittableLocal = *hittables.data()->get();
 
     Raytracer::HitRecord* localRecords = nullptr;
 
-    cudaMallocManaged(&localRecords, numHittables * sizeof(Raytracer::HitRecord));
+    cudaMallocManaged(&localRecords, numHittables * numRays * sizeof(Raytracer::HitRecord));
 
 
     int threads = 256;
@@ -139,6 +140,7 @@ std::vector<Raytracer::HitRecord> Camera::launchCollisionKernel(const std::vecto
 
     std::vector<Raytracer::HitRecord> records;
 
+    records.resize(numHittables * numRays);
     std::copy(localRecords, localRecords + numHittables, records.begin());
 
     cudaFree(localRecords);

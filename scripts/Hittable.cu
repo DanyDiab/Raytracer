@@ -13,7 +13,7 @@ namespace Raytracer {
         
     }
 
-    __device__ float Hittable::rayCollide(const Raytracer::Ray* ray) const{
+    __device__ float Hittable::rayCollide(const Raytracer::Ray ray) const{
         if(shapeType == SHAPE_SPHERE){
             return SphereRayCollide(Geometry.sphere, ray);
         }

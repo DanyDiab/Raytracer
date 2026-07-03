@@ -27,7 +27,7 @@ namespace Raytracer{
             __host__ ~Hittable();
             Raytracer::Geometry Geometry;
             Material mat;
-            __device__ float rayCollide(const Raytracer::Ray* ray) const;
+            __device__ float rayCollide(const Raytracer::Ray ray) const;
             ShapeType shapeType;
 
 

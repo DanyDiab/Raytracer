@@ -8,6 +8,6 @@ struct Sphere{
     glm::vec3 position;
 };
 
-__device__ float SphereRayCollide(const Sphere sphere, const Raytracer::Ray* ray);
+__device__ float SphereRayCollide(const Sphere sphere, const Raytracer::Ray ray);
 
 

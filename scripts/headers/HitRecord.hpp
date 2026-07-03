@@ -6,6 +6,6 @@ namespace Raytracer{
     struct HitRecord{
 
         float hitDistance;
-        Raytracer::Ray* ray;
+        Raytracer::Ray ray;
     };
 }

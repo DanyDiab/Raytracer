@@ -34,7 +34,7 @@ class Camera{
 
     private:
         Raytracer::Transform transform;
-        std::vector<Raytracer::Ray*> rays;
+        std::vector<Raytracer::Ray> rays;
         
 
 };
