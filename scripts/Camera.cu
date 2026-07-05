@@ -16,10 +16,8 @@
 #include <vector>
 
 #include "headers/Ray.hpp"
-#include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 #include <cuda/std/cmath>
-
 Camera::Camera(ViewportInfo vi) {
     transform = {
         .position = glm::vec3(0,0,0),
@@ -87,69 +85,95 @@ void Camera::generateRays(){
     cudaFree(rawRay);
 }
 
-__global__ void RayHittableCollision(Raytracer::Ray* rays, int numRays, Raytracer::Hittable* hittables, int numHittables, Raytracer::HitRecord** records){
+__global__ void RayHittableCollision(Raytracer::Ray* rays, int numRays, Raytracer::Hittable* hittables, int numHittables, Raytracer::HitRecord* records){
     int index = threadIdx.x + (blockDim.x * blockIdx.x);
 
     // invalid index
+
     if(index >= numRays * numHittables){
         return;
     }
 
     int rayIndex = index % numRays;
-    int shapeIndex = index / numHittables;
+    int shapeIndex = index % numHittables;
 
     Raytracer::Ray& ray = rays[rayIndex];
     Raytracer::Hittable& shape = hittables[shapeIndex];
-    Raytracer::HitRecord* record = records[shapeIndex];
+    Raytracer::HitRecord& record = records[rayIndex];
 
     float rayHitDistance = shape.rayCollide(ray);
 
     // found closer hit point
-    if(rayHitDistance != -1 && rayHitDistance < record->hitDistance){
-        record->ray = ray;
-        record->hitDistance = rayHitDistance;
+    if(rayHitDistance != -1 && rayHitDistance < record.hitDistance){
+        record.ray = ray;
+        record.hitDistance = rayHitDistance;
+        record.shape = shape;
     }
 }
 
-std::vector<Raytracer::HitRecord> Camera::launchCollisionKernel(const std::vector<std::shared_ptr<Raytracer::Hittable*>>& hittables){
-
+void Camera::launchCollisionKernel(const std::vector<std::shared_ptr<Raytracer::Hittable>>& hittables){
     Raytracer::Ray* raysLocal = nullptr;
     int numRays = rays.size();
 
-    int rayBytes = numRays * sizeof(Raytracer::Ray*);
+    int rayBytes = numRays * sizeof(Raytracer::Ray);
 
     cudaMallocManaged(&raysLocal, rayBytes);
-    raysLocal = rays.data();
+    memcpy(raysLocal, rays.data(), rayBytes);
 
     Raytracer::Hittable* hittableLocal; 
     int numHittables = hittables.size();
+    int hittableBytes = numHittables * sizeof(Raytracer::Hittable);
 
-    cudaMallocManaged(&raysLocal, rayBytes);
-    hittableLocal = *hittables.data()->get();
+    cudaMallocManaged(&hittableLocal, hittableBytes);
 
-    Raytracer::HitRecord* localRecords = nullptr;
+    for (int i = 0; i < numHittables; i++) {
+        if (!hittables[i]) {
+            memset(&hittableLocal[i], 0, sizeof(Raytracer::Hittable));
+            continue;
+        }
+        memcpy(&hittableLocal[i], hittables[i].get(), sizeof(Raytracer::Hittable));
+    }
 
-    cudaMallocManaged(&localRecords, numHittables * numRays * sizeof(Raytracer::HitRecord));
+    Raytracer::HitRecord* localRecords;
 
+    cudaMallocManaged(&localRecords,numRays * sizeof(Raytracer::HitRecord));
+
+    for (int i = 0; i < numRays; i++) {
+        localRecords[i].hitDistance = -1; 
+    }
 
     int threads = 256;
     int blocks = (numHittables * numRays + threads - 1) / threads;
-    RayHittableCollision<<<threads, blocks >>>(raysLocal, numRays, hittableLocal, numHittables, &localRecords);
+    RayHittableCollision<<<blocks, threads>>>(raysLocal, numRays, hittableLocal, numHittables, localRecords);
+    
 
+    cudaError_t launchErr = cudaGetLastError();
+    if (launchErr != cudaSuccess) {
+        std::cerr << "Kernel launch failed: " << cudaGetErrorString(launchErr) << std::endl;
+    }
     cudaDeviceSynchronize();
 
-    std::vector<Raytracer::HitRecord> records;
+    cudaError_t syncErr = cudaDeviceSynchronize();
+    if (syncErr != cudaSuccess) {
+        std::cerr << "CUDA Sync Error: " << cudaGetErrorString(syncErr) << std::endl;
+        exit(EXIT_FAILURE); 
+    }
 
-    records.resize(numHittables * numRays);
-    std::copy(localRecords, localRecords + numHittables, records.begin());
+    hitRecords.resize(numRays);
 
+    for(int i = 0; i < numRays; i++){
+        auto record = localRecords[i];
+
+        if(record.hitDistance != -1){
+            std::cout << "found a hit \n" << record.hitDistance; 
+        }
+    }
+    std::copy(localRecords, localRecords + numRays, hitRecords.begin());
+
+    
     cudaFree(localRecords);
     cudaFree(hittableLocal);
     cudaFree(raysLocal);
-
-    return records;
-
-
 }
 
 
@@ -170,7 +194,7 @@ void writeColorsToPPM(std::vector<glm::vec3> colors, float height, float width){
     std::cout << std::flush;
 }
 
-void Camera::shootRays(const std::vector<std::shared_ptr<Raytracer::Hittable*>>& hittables){
+void Camera::shootRays(const std::vector<std::shared_ptr<Raytracer::Hittable>>& hittables){
     glm::vec3 backgroundColor = glm::vec3(0,0,0);
 
     float width = viewportInfo->width;
@@ -181,41 +205,20 @@ void Camera::shootRays(const std::vector<std::shared_ptr<Raytracer::Hittable*>>&
     float size = width * height;
     std::vector<glm::vec3> colors;
     colors.reserve(size);
-
     
     launchCollisionKernel(hittables);
-    // for(int i = 0; i < size; i++){
-    //     Raytracer::Ray* ray = rays.at(i);
 
-    //     float closestHit = std::numeric_limits<float>::max();
-    //     std::shared_ptr<Raytracer::Hittable> closestShape;
-    //     bool foundHit = false;
-    //     for(const auto& shape: hittables){
-    //         float hitDistance = shape->rayCollide(ray);
-    //         // if missed
-    //         if(hitDistance < 0){
-    //             continue;
-    //         }
-    //         // hit
-    //         else if(hitDistance < closestHit){
-    //             foundHit = true;
-    //             closestShape = shape;
-    //             closestHit = hitDistance;
-    //         }
-    //     }
-    //     if(foundHit){
-    //         glm::vec3 hitPoint = ray->origin + (ray->dir * closestHit);
-    //         if(closestShape->shapeType == Raytracer::SHAPE_SPHERE){
-    //             glm::vec3 normal = glm::normalize(hitPoint - closestShape->Geometry.sphere.position);
-    //             colors.push_back(closestShape->mat.color);
-    //         }
-    //     }
-    //     else{
-    //         colors.push_back(backgroundColor);
-    //     }
-
-    // }
-    writeColorsToPPM(colors, height, width);
+// TODO
+// USE RECORDS!
+    for(const auto& hit : hitRecords){
+        if(hit.hitDistance != -1){
+            colors.push_back(hit.shape.mat.color);
+        }
+        else{
+            colors.push_back(backgroundColor);
+        }
+    }
+    // writeColorsToPPM(colors, height, width);
 }
 
 

@@ -4,7 +4,6 @@
 #include "Material.hpp"
 #include "Transform.hpp"
 #include "Sphere.cuh"
-#include <cuda_runtime.h>
 
 namespace Raytracer{
     enum ShapeType{
@@ -13,21 +12,27 @@ namespace Raytracer{
 
     union Geometry{
         Sphere sphere;
-        
-        __host__ Geometry() {}
-        
-        __host__ ~Geometry() {}
     };
 
     class Hittable{
         public:
-            __host__ Hittable();
-            __host__ Hittable(Sphere sphere);
+            __host__ __device__ Hittable() = default;
+            __host__ __device__ Hittable(Sphere sphere);
 
-            __host__ ~Hittable();
-            Raytracer::Geometry Geometry;
+            __host__ __device__ ~Hittable() = default;
+
+            Sphere sphere;
+
             Material mat;
-            __device__ float rayCollide(const Raytracer::Ray ray) const;
+            inline __device__ float rayCollide(const Raytracer::Ray ray) const{
+                if(shapeType == SHAPE_SPHERE){
+                    return SphereRayCollide(sphere, ray);
+                }
+                else{
+                    return -1;
+                }
+            };
+            
             ShapeType shapeType;
 
 
