@@ -40,10 +40,17 @@ int main(int argc, char** argv){
         .position = glm::vec3(100,0,70), 
     };
 
+    Raytracer::Sphere sphere2 = Raytracer::Sphere{
+        .radius = 300.0f, 
+        .position = glm::vec3(-450,0,500), 
+    };
+
 
 
     Raytracer::Hittable hit = Raytracer::Hittable(sphere);
     Raytracer::Hittable hit1 = Raytracer::Hittable(sphere1);
+    Raytracer::Hittable hit2 = Raytracer::Hittable(sphere2);
+
     
     hit.mat = {
         .color = glm::vec3(1,0,0)
@@ -52,12 +59,18 @@ int main(int argc, char** argv){
     hit1.mat = {
         .color = glm::vec3(0,1,0)
     };
+// 219, 136, 136
+    hit2.mat = {
+        .color = glm::vec3(219.0/255.0,136.0/255.0,136.0/255.0)
+    };
     
 
     std::vector<std::shared_ptr<Raytracer::Hittable>> shapeList;
 
     shapeList.push_back(std::make_shared<Raytracer::Hittable>(hit));
     shapeList.push_back(std::make_shared<Raytracer::Hittable>(hit1));
+    shapeList.push_back(std::make_shared<Raytracer::Hittable>(hit2));
+
 
 
     cam.generateRays();

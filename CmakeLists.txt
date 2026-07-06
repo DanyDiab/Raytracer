@@ -17,7 +17,8 @@ add_executable(Raytracer
 "${SCRIPTSDIR}/Main.cpp"
 "${SCRIPTSDIR}/Camera.cu"
 "${SCRIPTSDIR}/Sphere.cu"
-"${SCRIPTSDIR}/Hittable.cu")
+"${SCRIPTSDIR}/Hittable.cu"
+"${SCRIPTSDIR}/Math.cpp")
 
 set_target_properties(Raytracer PROPERTIES 
     CUDA_SEPARATE_COMPILATION ON
