@@ -93,6 +93,10 @@ __global__ void RayHittableCollision(Raytracer::Ray* rays, int numRays, Raytrace
     if(index >= numRays * numHittables){
         return;
     }
+    
+    // if(index == 1){
+    //     printf("Inside Camera: %f", hittables[0].sphere.radius);
+    // }
 
     int rayIndex = index % numRays;
     int shapeIndex = index % numHittables;
@@ -102,9 +106,8 @@ __global__ void RayHittableCollision(Raytracer::Ray* rays, int numRays, Raytrace
     Raytracer::HitRecord& record = records[rayIndex];
 
     float rayHitDistance = shape.rayCollide(ray);
-
     // found closer hit point
-    if(rayHitDistance != -1 && rayHitDistance < record.hitDistance){
+    if((!record.hit && rayHitDistance > -1.0f) || rayHitDistance < record.hitDistance){
         record.ray = ray;
         record.hitDistance = rayHitDistance;
         record.shape = shape;
@@ -161,13 +164,6 @@ void Camera::launchCollisionKernel(const std::vector<std::shared_ptr<Raytracer::
 
     hitRecords.resize(numRays);
 
-    for(int i = 0; i < numRays; i++){
-        auto record = localRecords[i];
-
-        if(record.hitDistance != -1){
-            std::cout << "found a hit \n" << record.hitDistance; 
-        }
-    }
     std::copy(localRecords, localRecords + numRays, hitRecords.begin());
 
     
@@ -208,8 +204,6 @@ void Camera::shootRays(const std::vector<std::shared_ptr<Raytracer::Hittable>>& 
     
     launchCollisionKernel(hittables);
 
-// TODO
-// USE RECORDS!
     for(const auto& hit : hitRecords){
         if(hit.hitDistance != -1){
             colors.push_back(hit.shape.mat.color);
@@ -218,7 +212,7 @@ void Camera::shootRays(const std::vector<std::shared_ptr<Raytracer::Hittable>>& 
             colors.push_back(backgroundColor);
         }
     }
-    // writeColorsToPPM(colors, height, width);
+    writeColorsToPPM(colors, height, width);
 }
 
 

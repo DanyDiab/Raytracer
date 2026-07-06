@@ -12,5 +12,16 @@ namespace Raytracer {
         this->sphere = sphere;
     }
 
+    __device__ float Hittable::rayCollide(const Raytracer::Ray ray) const{
+        // printf("Inside Hittable: %f", sphere.radius);
+        if(shapeType == SHAPE_SPHERE){
+            return SphereRayCollide(sphere, ray);
+        }
+        else{
+            return -1;
+        }
+    }
+
+
 
 }

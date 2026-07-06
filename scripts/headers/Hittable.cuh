@@ -24,14 +24,7 @@ namespace Raytracer{
             Sphere sphere;
 
             Material mat;
-            inline __device__ float rayCollide(const Raytracer::Ray ray) const{
-                if(shapeType == SHAPE_SPHERE){
-                    return SphereRayCollide(sphere, ray);
-                }
-                else{
-                    return -1;
-                }
-            };
+            __device__ float rayCollide(const Raytracer::Ray ray) const;
             
             ShapeType shapeType;
 

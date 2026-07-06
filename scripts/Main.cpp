@@ -37,7 +37,7 @@ int main(int argc, char** argv){
 
     Raytracer::Sphere sphere1 = Raytracer::Sphere{
         .radius = 80.0f, 
-        .position = glm::vec3(30,0,70), 
+        .position = glm::vec3(100,0,70), 
     };
 
 
