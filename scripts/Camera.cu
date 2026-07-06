@@ -1,3 +1,4 @@
+#include <cstddef>
 #include <cuda_runtime.h>
 
 #include "headers/Camera.hpp"
@@ -90,7 +91,7 @@ __global__ void RayHittableCollision(Raytracer::Ray* rays, int numRays, Raytrace
 
     // invalid index
 
-    if(index >= numRays * numHittables){
+    if(index >= numRays){
         return;
     }
     
@@ -98,20 +99,28 @@ __global__ void RayHittableCollision(Raytracer::Ray* rays, int numRays, Raytrace
     //     printf("Inside Camera: %f", hittables[0].sphere.radius);
     // }
 
-    int rayIndex = index % numRays;
-    int shapeIndex = index % numHittables;
 
-    Raytracer::Ray& ray = rays[rayIndex];
-    Raytracer::Hittable& shape = hittables[shapeIndex];
-    Raytracer::HitRecord& record = records[rayIndex];
+    Raytracer::Ray& ray = rays[index];
+    Raytracer::HitRecord& record = records[index];
 
-    float rayHitDistance = shape.rayCollide(ray);
+    Raytracer::HitRecord tempRecord = {
+        .hitDistance = (2 << 16) - 1,
+        .hit = false
+    };
+    
     // found closer hit point
-    if((!record.hit && rayHitDistance > -1.0f) || rayHitDistance < record.hitDistance){
-        record.ray = ray;
-        record.hitDistance = rayHitDistance;
-        record.shape = shape;
+    for(int i = 0; i < numHittables; i++){
+        Raytracer::Hittable& shape = hittables[i];
+        float rayHitDistance = shape.rayCollide(ray);
+        if((!record.hit && rayHitDistance > -1.0f) || (rayHitDistance < record.hitDistance)){
+            tempRecord.hit = true;
+            tempRecord.hitDistance = rayHitDistance;
+            tempRecord.ray = ray;
+            tempRecord.shape = shape;
+        }
     }
+
+    record = tempRecord;
 }
 
 void Camera::launchCollisionKernel(const std::vector<std::shared_ptr<Raytracer::Hittable>>& hittables){
@@ -146,7 +155,7 @@ void Camera::launchCollisionKernel(const std::vector<std::shared_ptr<Raytracer::
     }
 
     int threads = 256;
-    int blocks = (numHittables * numRays + threads - 1) / threads;
+    int blocks = (numRays + threads - 1) / threads;
     RayHittableCollision<<<blocks, threads>>>(raysLocal, numRays, hittableLocal, numHittables, localRecords);
     
 
@@ -166,7 +175,6 @@ void Camera::launchCollisionKernel(const std::vector<std::shared_ptr<Raytracer::
 
     std::copy(localRecords, localRecords + numRays, hitRecords.begin());
 
-    
     cudaFree(localRecords);
     cudaFree(hittableLocal);
     cudaFree(raysLocal);
@@ -205,7 +213,7 @@ void Camera::shootRays(const std::vector<std::shared_ptr<Raytracer::Hittable>>& 
     launchCollisionKernel(hittables);
 
     for(const auto& hit : hitRecords){
-        if(hit.hitDistance != -1){
+        if(hit.hit){
             colors.push_back(hit.shape.mat.color);
         }
         else{
