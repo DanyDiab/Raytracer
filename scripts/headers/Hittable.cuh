@@ -1,6 +1,7 @@
 #pragma once
 
-#include "Ray.hpp"
+#include "HitRecord.hpp"
+#include "Ray.cuh"
 #include "Material.hpp"
 #include "Transform.hpp"
 #include "Sphere.cuh"
@@ -24,7 +25,8 @@ namespace Raytracer{
             Sphere sphere;
 
             Material mat;
-            __device__ float rayCollide(const Raytracer::Ray ray) const;
+            __device__  Raytracer::HitRecord rayCollide(const Raytracer::Ray ray) const;
+
             
             ShapeType shapeType;
 

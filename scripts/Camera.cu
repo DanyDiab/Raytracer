@@ -4,6 +4,7 @@
 #include "headers/Camera.hpp"
 #include "headers/HitRecord.hpp"
 #include "headers/Hittable.cuh"
+#include "headers/Math.cuh"
 #include "headers/Transform.hpp"
 #include <cmath>
 #include <cuda_runtime_api.h>
@@ -13,12 +14,16 @@
 #include <glm/ext/vector_float3.hpp>
 #include <glm/vec3.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <iostream>
 #include <memory>
 #include <vector>
 
-#include "headers/Ray.hpp"
+#include "headers/Ray.cuh"
 #include <device_launch_parameters.h>
 #include <cuda/std/cmath>
+
+constexpr int maxNumBounces = 20;
+
 Camera::Camera(ViewportInfo vi) {
     transform = {
         .position = glm::vec3(0,0,0),
@@ -94,33 +99,43 @@ __global__ void RayHittableCollision(Raytracer::Ray* rays, int numRays, Raytrace
     if(index >= numRays){
         return;
     }
-    
-    // if(index == 1){
-    //     printf("Inside Camera: %f", hittables[0].sphere.radius);
-    // }
 
+    Raytracer::Ray ray = rays[index];
 
-    Raytracer::Ray& ray = rays[index];
-    Raytracer::HitRecord& record = records[index];
+    Raytracer::HitRecord hi = ray.RayIntersectShapes(hittables, numHittables);
 
-    Raytracer::HitRecord tempRecord = {
-        .hitDistance = (2 << 16) - 1,
-        .hit = false
-    };
-    
-    // found closer hit point
-    for(int i = 0; i < numHittables; i++){
-        Raytracer::Hittable& shape = hittables[i];
-        float rayHitDistance = shape.rayCollide(ray);
-        if((!record.hit && rayHitDistance > -1.0f) || (rayHitDistance < record.hitDistance)){
-            tempRecord.hit = true;
-            tempRecord.hitDistance = rayHitDistance;
-            tempRecord.ray = ray;
-            tempRecord.shape = shape;
-        }
+    if(hi.hitDistance < 0.0f){
+        records[index].hitDistance = -1.0f;
+        records[index].color = glm::vec3(0.0f);
+        return;
     }
 
-    record = tempRecord;
+    Raytracer::HitRecord finalRecord = hi;
+
+    int numBounced = 0;
+    glm::vec3 accumulatedColor = (hi.color * .5f);
+    unsigned int seed = (unsigned int)index;
+    while(numBounced < maxNumBounces){
+
+        glm::vec3 hitPoint = (ray.dir * hi.hitDistance) + ray.origin;
+
+        ray.origin = hitPoint + (hi.normal *.001f);
+        ray.dir = Raytracer::randomUnitVecSameHemisphere(hi.normal, seed);
+
+        hi = ray.RayIntersectShapes(hittables, numHittables);
+
+        if (hi.hitDistance < 0.0f) {
+            accumulatedColor *= glm::vec3(1.0f, 1.0f, 1.0f);
+            break;
+        }
+
+        accumulatedColor *= (hi.color * .5f);
+
+        numBounced++;
+    }
+
+    finalRecord.color = accumulatedColor;
+    records[index] = finalRecord;
 }
 
 void Camera::launchCollisionKernel(const std::vector<std::shared_ptr<Raytracer::Hittable>>& hittables){
@@ -213,8 +228,8 @@ void Camera::shootRays(const std::vector<std::shared_ptr<Raytracer::Hittable>>& 
     launchCollisionKernel(hittables);
 
     for(const auto& hit : hitRecords){
-        if(hit.hit){
-            colors.push_back(hit.shape.mat.color);
+        if(hit.hitDistance > -1.0f){
+            colors.push_back(hit.color);
         }
         else{
             colors.push_back(backgroundColor);

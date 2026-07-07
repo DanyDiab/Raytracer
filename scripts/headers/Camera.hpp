@@ -2,14 +2,13 @@
 
 #include <cuda_runtime.h>
 #include "HitRecord.hpp"
-#include "Ray.hpp"
+#include "Ray.cuh"
 #include "Sphere.cuh"
 #include "Transform.hpp"
 #include <glm/vec3.hpp>
 #include <memory>
 #include <vector>
 #include "Hittable.cuh"
-
 
 struct ViewportInfo{
     float near;
