@@ -120,7 +120,7 @@ __global__ void RayHittableCollision(Raytracer::Ray* rays, int numRays, Raytrace
         glm::vec3 hitPoint = (ray.dir * hi.hitDistance) + ray.origin;
 
         ray.origin = hitPoint + (hi.normal *.001f);
-        ray.dir = Raytracer::randomUnitVecSameHemisphere(hi.normal, seed);
+        ray.dir = hi.normal + Raytracer::randomUnitVecSameHemisphere(hi.normal, seed);
 
         hi = ray.RayIntersectShapes(hittables, numHittables);
 
