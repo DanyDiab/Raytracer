@@ -24,7 +24,7 @@
 
 constexpr int maxNumBounces = 2;
 // how big is the square for each pixel? square it and this is the number of rays per pixel
-constexpr int squarePixelSize = 5;
+constexpr int squarePixelSize = 10;
 
 Camera::Camera(ViewportInfo vi) {
     transform = {
@@ -50,26 +50,29 @@ Camera::Camera(ViewportInfo vi, glm::vec3 pos, glm::quat rot){
 __global__ void sendRays(Raytracer::Ray* rays, glm::vec3 forward, glm::vec3 right, glm::vec3 up, glm::vec3 camPos, float leftOffset, float botOffset, int width, int height, int squarePixelSize){
     int index = threadIdx.x + (blockDim.x * blockIdx.x);
     int raysPerPixel = squarePixelSize * squarePixelSize;
-    if(index < width * height){
-        int pixelX = index % width;
-        int pixelY = index / width;
+    if(index < width * height * raysPerPixel){
 
+        int pixelIndex = index / raysPerPixel;
 
-        float delta = 1.0f / squarePixelSize;
-        for(int i = 0; i < raysPerPixel; i++){
-            int col = i % squarePixelSize;
-            int row = i / squarePixelSize; 
+        int pixelX = pixelIndex % width;
+        int pixelY = pixelIndex / width;
 
-            float x = delta * col;
-            float y = delta * row;
+        int subPixelIndex = index % raysPerPixel;
 
-            float localX = pixelX + leftOffset + x;
-            float localY = pixelY + botOffset + y;
+        int col = subPixelIndex % squarePixelSize;
+        int row = subPixelIndex / squarePixelSize;
+        
+        float delta = 1.0f / (float) squarePixelSize;
 
-            glm::vec3 origin = camPos + (up * localY) + right * (localX);
-            rays[index + i].dir = forward;
-            rays[index + i].origin = origin;
-        }
+        float x = delta * col;
+        float y = delta * row;
+
+        float localX = pixelX + leftOffset + x;
+        float localY = pixelY + botOffset + y;
+
+        glm::vec3 origin = camPos + (up * localY) + right * (localX);
+        rays[index].dir = forward;
+        rays[index].origin = origin;
     }
 }
 
@@ -94,7 +97,7 @@ void Camera::generateRays(){
     cudaMallocManaged(&rawRay, size * sizeof(Raytracer::Ray));
 
     int threads = 256;
-    int blocks = (numPixels + threads - 1) / threads;
+    int blocks = (size + threads - 1) / threads;
     sendRays<<<blocks, threads>>>(rawRay,transform.forward(),transform.right(), transform.up(),transform.position, left,bot, width,height, squarePixelSize);
 
     cudaDeviceSynchronize();
@@ -192,7 +195,6 @@ void Camera::launchCollisionKernel(const std::vector<std::shared_ptr<Raytracer::
     if (launchErr != cudaSuccess) {
         std::cerr << "Kernel launch failed: " << cudaGetErrorString(launchErr) << std::endl;
     }
-    cudaDeviceSynchronize();
 
     cudaError_t syncErr = cudaDeviceSynchronize();
     if (syncErr != cudaSuccess) {
@@ -244,7 +246,6 @@ void Camera::shootRays(const std::vector<std::shared_ptr<Raytracer::Hittable>>& 
     int pixelIndex = 0;
     int raysPerPixel = squarePixelSize * squarePixelSize;
     glm::vec3 accumulatedColor = glm::vec3(0);
-    std::cout << "I have " << hitRecords.size() << " records\n";
     for(int i = 0; i < hitRecords.size(); i++){
         auto hit = hitRecords.at(i);
         // write only every pixel
@@ -255,7 +256,7 @@ void Camera::shootRays(const std::vector<std::shared_ptr<Raytracer::Hittable>>& 
         else{
             accumulatedColor += glm::vec3(0);
         }
-        
+
         bool flush = (i + 1) % raysPerPixel == 0;
 
         if(flush){
