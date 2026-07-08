@@ -22,7 +22,9 @@
 #include <device_launch_parameters.h>
 #include <cuda/std/cmath>
 
-constexpr int maxNumBounces = 20;
+constexpr int maxNumBounces = 2;
+// how big is the square for each pixel? square it and this is the number of rays per pixel
+constexpr int squarePixelSize = 5;
 
 Camera::Camera(ViewportInfo vi) {
     transform = {
@@ -45,20 +47,29 @@ Camera::Camera(ViewportInfo vi, glm::vec3 pos, glm::quat rot){
 }
 
 
-__global__ void sendRays(Raytracer::Ray* rays, glm::vec3 forward, glm::vec3 right, glm::vec3 up, int width, int height, glm::vec3 camPos, float leftOffset, float botOffset){
+__global__ void sendRays(Raytracer::Ray* rays, glm::vec3 forward, glm::vec3 right, glm::vec3 up, glm::vec3 camPos, float leftOffset, float botOffset, int width, int height, int squarePixelSize){
     int index = threadIdx.x + (blockDim.x * blockIdx.x);
+    int raysPerPixel = squarePixelSize * squarePixelSize;
     if(index < width * height){
-        int x = index % width;
-        int y = index / width;
+        int pixelX = index % width;
+        int pixelY = index / width;
 
-        float localX = leftOffset + (float)x;
-        float localY = botOffset + (float)y;
 
-        glm::vec3 origin = camPos + (up * localY) + right * (localX);
+        float delta = 1.0f / squarePixelSize;
+        for(int i = 0; i < raysPerPixel; i++){
+            int col = i % squarePixelSize;
+            int row = i / squarePixelSize; 
 
-        rays[index].dir = forward;
-        rays[index].origin = origin;
+            float x = delta * col;
+            float y = delta * row;
 
+            float localX = pixelX + leftOffset + x;
+            float localY = pixelY + botOffset + y;
+
+            glm::vec3 origin = camPos + (up * localY) + right * (localX);
+            rays[index + i].dir = forward;
+            rays[index + i].origin = origin;
+        }
     }
 }
 
@@ -71,7 +82,10 @@ void Camera::generateRays(){
     float left = transform.position.x - (width / 2);
     float bot = transform.position.y - (height / 2);
 
-    int size = width * height;
+    int raysPerPixel = squarePixelSize * squarePixelSize;
+
+    int numPixels =  width * height;
+    int size = numPixels * raysPerPixel;
 
     rays = std::vector<Raytracer::Ray>(size);
 
@@ -80,8 +94,8 @@ void Camera::generateRays(){
     cudaMallocManaged(&rawRay, size * sizeof(Raytracer::Ray));
 
     int threads = 256;
-    int blocks = (size + threads - 1) / threads;
-    sendRays<<<blocks, threads>>>(rawRay,transform.forward(),transform.right(), transform.up(),width,height,transform.position,left,bot);
+    int blocks = (numPixels + threads - 1) / threads;
+    sendRays<<<blocks, threads>>>(rawRay,transform.forward(),transform.right(), transform.up(),transform.position, left,bot, width,height, squarePixelSize);
 
     cudaDeviceSynchronize();
 
