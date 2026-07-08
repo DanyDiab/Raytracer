@@ -241,12 +241,26 @@ void Camera::shootRays(const std::vector<std::shared_ptr<Raytracer::Hittable>>& 
     
     launchCollisionKernel(hittables);
 
-    for(const auto& hit : hitRecords){
+    int pixelIndex = 0;
+    int raysPerPixel = squarePixelSize * squarePixelSize;
+    glm::vec3 accumulatedColor = glm::vec3(0);
+    std::cout << "I have " << hitRecords.size() << " records\n";
+    for(int i = 0; i < hitRecords.size(); i++){
+        auto hit = hitRecords.at(i);
+        // write only every pixel
+
         if(hit.hitDistance > -1.0f){
-            colors.push_back(hit.color);
+            accumulatedColor += hit.color;
         }
         else{
-            colors.push_back(backgroundColor);
+            accumulatedColor += glm::vec3(0);
+        }
+        
+        bool flush = (i + 1) % raysPerPixel == 0;
+
+        if(flush){
+            colors.push_back(accumulatedColor / (float) raysPerPixel);
+            accumulatedColor = glm::vec3(0);
         }
     }
     writeColorsToPPM(colors, height, width);

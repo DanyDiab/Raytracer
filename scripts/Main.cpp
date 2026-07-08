@@ -87,6 +87,8 @@ int main(int argc, char** argv){
 
     cam.shootRays(shapeList);
 
+    std::cout << "RENDERING IS DONE! \n INSHALLAH ITS RIGHT!\n";
+
 
     while(window.updateWindow()){
 

@@ -13,6 +13,5 @@ namespace Raytracer{
         float hitDistance;
         glm::vec3 normal;
         glm::vec3 color;
-
     };
 };
