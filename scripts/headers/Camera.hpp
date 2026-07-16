@@ -13,8 +13,8 @@
 struct ViewportInfo{
     float near;
     float far;
-    float width;
-    float height;
+    int width;
+    int height;
 };
 
 class Camera{
