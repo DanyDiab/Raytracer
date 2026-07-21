@@ -19,7 +19,8 @@ add_executable(Raytracer
 "${SCRIPTSDIR}/Sphere.cu"
 "${SCRIPTSDIR}/Hittable.cu"
 "${SCRIPTSDIR}/Math.cu"
-"${SCRIPTSDIR}/Ray.cu")
+"${SCRIPTSDIR}/Ray.cu",
+"${SCRIPTSDIR}/RayAveraging.cu")
 
 set_target_properties(Raytracer PROPERTIES 
     CUDA_SEPARATE_COMPILATION ON

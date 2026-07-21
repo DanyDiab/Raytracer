@@ -5,6 +5,7 @@
 #include "headers/HitRecord.hpp"
 #include "headers/Hittable.cuh"
 #include "headers/Math.cuh"
+#include "headers/RayAveraging.cuh"
 #include "headers/Transform.hpp"
 #include <cmath>
 #include <cuda_runtime_api.h>
@@ -25,7 +26,7 @@
 
 constexpr int maxNumBounces = 10;
 // how big is the square for each pixel? square it and this is the number of rays per pixel
-constexpr int squarePixelSize = 10;
+constexpr int squarePixelSize = 5;
 
 Camera::Camera(ViewportInfo vi) {
     transform = {
@@ -218,14 +219,11 @@ void Camera::launchCollisionKernel(const std::vector<std::shared_ptr<Raytracer::
     cudaFree(raysLocal);
 }
 
-
-
-
-void writeColorsToPPM(std::vector<glm::vec3> colors, int height, int width){
+void writeColorsToPPM(std::vector<ColorAverage> colors, int height, int width){
     std::cout << "P3\n" << width << ' ' << height << "\n255\n";
 
     for(int i = 0; i < colors.size(); i++){
-        glm::vec3 color = colors.at(i);
+        glm::vec3 color = colors.at(i).color;
 
         float ir = color.r * 255.9999f;
         float ig = color.g * 255.9999f; 
@@ -237,6 +235,8 @@ void writeColorsToPPM(std::vector<glm::vec3> colors, int height, int width){
     std::cout << std::endl;
 }
 
+
+
 void Camera::shootRays(const std::vector<std::shared_ptr<Raytracer::Hittable>>& hittables){
     glm::vec3 backgroundColor = glm::vec3(0,0,0);
 
@@ -246,32 +246,35 @@ void Camera::shootRays(const std::vector<std::shared_ptr<Raytracer::Hittable>>& 
     float bot = transform.position.y - (height / 2.0f);
 
     float size = width * height;
-    std::vector<glm::vec3> colors;
-    colors.reserve(size);
+
     
     launchCollisionKernel(hittables);
 
     int pixelIndex = 0;
     int raysPerPixel = squarePixelSize * squarePixelSize;
-    glm::vec3 accumulatedColor = glm::vec3(0);
-    for(int i = 0; i < hitRecords.size(); i++){
-        auto hit = hitRecords.at(i);
+   
+    ColorAverage* ca;
+    
+    Raytracer::HitRecord* localRecords;
 
-        if(hit.hitDistance > -1.0f){
-            accumulatedColor += hit.color;
-        }
-        else{
-            accumulatedColor += glm::vec3(0);
-        }
+    int numRecords = hitRecords.size();
 
-        // write only every pixel
-        bool flush = (i + 1) % raysPerPixel == 0;
+    cudaMallocManaged(&localRecords, sizeof(Raytracer::HitRecord) * numRecords);
 
-        if(flush){
-            colors.push_back(accumulatedColor / (float) raysPerPixel);
-            accumulatedColor = glm::vec3(0);
-        }
-    }
+    cudaMemcpy(hitRecords.data(), localRecords, numRecords, cudaMemcpyHostToDevice);
+
+    cudaMallocManaged(&ca, sizeof(ColorAverage) * size);
+
+    rayAverage(ca, localRecords, numRecords, size, raysPerPixel);
+
+    std::vector<ColorAverage> colors;
+    colors.reserve(size);
+
+    cudaMemcpy(colors.data(), ca, size, cudaMemcpyDeviceToHost);
+
+    cudaFree(localRecords);
+    cudaFree(ca);
+
     writeColorsToPPM(colors, height, width);
 
 }
