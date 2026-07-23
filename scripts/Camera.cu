@@ -25,7 +25,7 @@
 
 constexpr int maxNumBounces = 10;
 // how big is the square for each pixel? square it and this is the number of rays per pixel
-constexpr int squarePixelSize = 10;
+constexpr int squarePixelSize = 5;
 
 Camera::Camera(ViewportInfo vi) {
     transform = {
@@ -106,7 +106,7 @@ void Camera::generateRays(){
     cudaDeviceSynchronize();
 
     rays.resize(size);
-    cudaError_t copyErr = cudaMemcpy(rays.data(), rawRay, size, cudaMemcpyDeviceToHost);
+    cudaError_t copyErr = cudaMemcpy(rays.data(), rawRay, size * sizeof(Raytracer::Ray), cudaMemcpyDefault);
     if (copyErr != cudaSuccess) {
         std::cout << "something wnet wrong while copying ray data over COPYING " << size * sizeof(Raytracer::Ray) << " Bytes";
         cudaFree(rawRay);
@@ -171,7 +171,7 @@ void Camera::launchCollisionKernel(const std::vector<std::shared_ptr<Raytracer::
 
     cudaMallocManaged(&raysLocal, rayBytes);
     // 
-    cudaMemcpy(raysLocal, rays.data(), rayBytes, cudaMemcpyHostToDevice);
+    cudaMemcpy(raysLocal, rays.data(), rayBytes, cudaMemcpyDefault);
 
 
     Raytracer::Hittable* hittableLocal; 
@@ -186,7 +186,7 @@ void Camera::launchCollisionKernel(const std::vector<std::shared_ptr<Raytracer::
             cudaMemset(&hittableLocal[i], 0, sizeof(Raytracer::Hittable));
             continue;
         }
-        cudaMemcpy(&hittableLocal[i], hittables[i].get(), sizeof(Raytracer::Hittable), cudaMemcpyHostToDevice);
+        cudaMemcpy(&hittableLocal[i], hittables[i].get(), sizeof(Raytracer::Hittable), cudaMemcpyDefault);
     }
 
     Raytracer::HitRecord* localRecords;
@@ -211,7 +211,7 @@ void Camera::launchCollisionKernel(const std::vector<std::shared_ptr<Raytracer::
 
     hitRecords.resize(numRays);
 
-    cudaMemcpy(hitRecords.data(), localRecords, numRays * sizeof(Raytracer::HitRecord), cudaMemcpyDeviceToHost);
+    cudaMemcpy(hitRecords.data(), localRecords, numRays * sizeof(Raytracer::Ray), cudaMemcpyDefault);
 
     cudaFree(localRecords);
     cudaFree(hittableLocal);
@@ -233,8 +233,8 @@ void writeColorsToPPM(std::vector<glm::vec3> colors, int height, int width){
 
         std::cout << ir << ' ' << ig << ' ' << ib << '\n';
     }
-    // std::cout << std::flush;
-    std::cout << std::endl;
+    std::cout << std::flush;
+    // std::cout << std::endl;
 }
 
 void Camera::shootRays(const std::vector<std::shared_ptr<Raytracer::Hittable>>& hittables){
