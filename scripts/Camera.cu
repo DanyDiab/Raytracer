@@ -67,7 +67,6 @@ __device__ glm::vec3 RayHittableCollision(Raytracer::Ray ray, Raytracer::Hittabl
 
     Raytracer::HitRecord hi = ray.RayIntersectShapes(hittables, numHittables);
 
-    printf("X: %f", hittables[0].sphere.radius);
     if(hi.hitDistance < 0.0f){
         return glm::vec3(0.0f);
     }
@@ -88,7 +87,6 @@ __device__ glm::vec3 RayHittableCollision(Raytracer::Ray ray, Raytracer::Hittabl
         hi = ray.RayIntersectShapes(hittables, numHittables);
 
         if (hi.hitDistance < 0.0f) {
-            printf("found hit");    
             accumulatedColor *= glm::vec3(1.0f, 1.0f, 1.0f);
             break;
         }
@@ -118,10 +116,12 @@ std::tuple<Raytracer::Hittable*, glm::vec3*> initGPUMemory(const std::vector<std
     Raytracer::Hittable *localHittable;
     cudaMalloc(&localHittable, sizeof(Raytracer::Hittable) * numHittables);
     
-    for(int i = 0; i < numHittables; i++){
-        cudaMemcpy(&localHittable[i], &hittables[i], sizeof(Raytracer::Hittable), cudaMemcpyHostToDevice);
+    for (int i = 0; i < numHittables; i++) {
+        Raytracer::Hittable* dest = localHittable + i;
+        const Raytracer::Hittable* src = hittables[i].get();
+        cudaMemcpy(dest, src, sizeof(Raytracer::Hittable), cudaMemcpyHostToDevice);
     }
-
+    cudaMemcpy(localHittable, &hittables, sizeof(Raytracer::Hittable) * numHittables, cudaMemcpyHostToDevice);
     glm::vec3* colors;
     int colorBytes = numPixels * sizeof(glm::vec3);
 
@@ -195,5 +195,6 @@ void Camera::Render(const std::vector<std::shared_ptr<Raytracer::Hittable>>& hit
     colors.resize(numRays);
     cudaMemcpy(colors.data(), colorsPTR, numRays * sizeof(glm::vec3), cudaMemcpyDeviceToHost);
 
-    // writeColorsToPPM(colors, height, width);
+    
+    writeColorsToPPM(colors, height, width);
 }
