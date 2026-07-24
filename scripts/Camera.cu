@@ -1,4 +1,3 @@
-#include <cstddef>
 #include <cuda_runtime.h>
 
 #include "headers/Camera.hpp"
@@ -6,7 +5,6 @@
 #include "headers/Hittable.cuh"
 #include "headers/Math.cuh"
 #include "headers/Transform.hpp"
-#include <cmath>
 #include <cuda_runtime_api.h>
 #include <driver_types.h>
 #include <glm/common.hpp>
@@ -17,15 +15,20 @@
 #include <glm/gtc/quaternion.hpp>
 #include <iostream>
 #include <memory>
+#include <tuple>
 #include <vector>
 
+#include <chrono>
 #include "headers/Ray.cuh"
+#include "headers/CameraRayGenerationInfo.hpp"
 #include <device_launch_parameters.h>
 #include <cuda/std/cmath>
 
 constexpr int maxNumBounces = 10;
 // how big is the square for each pixel? square it and this is the number of rays per pixel
 constexpr int squarePixelSize = 5;
+
+constexpr int renderTimeSeconds = 60;
 
 Camera::Camera(ViewportInfo vi) {
     transform = {
@@ -50,94 +53,29 @@ Camera::Camera(ViewportInfo vi, glm::vec3 pos, glm::quat rot){
 
 
 
-__global__ void sendRays(Raytracer::Ray* rays, glm::vec3 forward, glm::vec3 right, glm::vec3 up, glm::vec3 camPos, float leftOffset, float botOffset, int width, int height, int squarePixelSize){
-    int index = threadIdx.x + (blockDim.x * blockIdx.x);
-    int raysPerPixel = squarePixelSize * squarePixelSize;
-    if(index < width * height * raysPerPixel){
-
-        int pixelIndex = index / raysPerPixel;
-
-        int pixelX = pixelIndex % width;
-        int pixelY = pixelIndex / width;
-
-        int subPixelIndex = index % raysPerPixel;
-
-        int col = subPixelIndex % squarePixelSize;
-        int row = subPixelIndex / squarePixelSize;
-        
-        float delta = 1.0f / (float) squarePixelSize;
-
-        float x = delta * col;
-        float y = delta * row;
-
-        float localX = pixelX + leftOffset + x;
-        float localY = pixelY + botOffset + y;
-
-        glm::vec3 origin = camPos + (up * localY) + right * (localX);
-        rays[index].dir = forward;
-        rays[index].origin = origin;
-    }
-}
-
 // send viewport height * width rays into the scene, from the camera to each pixel
 // orthographic projection
-void Camera::generateRays(){
-    int width = viewportInfo->width;
-    int height = viewportInfo->height;
 
-    float left = transform.position.x - (width / 2.0f);
-    float bot = transform.position.y - (height / 2.0f);
+ 
 
-    int raysPerPixel = squarePixelSize * squarePixelSize;
 
-    int numPixels =  width * height;
-    int size = numPixels * raysPerPixel;
 
-    rays = std::vector<Raytracer::Ray>(size);
-
-    Raytracer::Ray* rawRay = nullptr;
-
-    cudaMallocManaged(&rawRay, size * sizeof(Raytracer::Ray));
-
-    int threads = 256;
-    int blocks = (size + threads - 1) / threads;
-    sendRays<<<blocks, threads>>>(rawRay,transform.forward(),transform.right(), transform.up(),transform.position, left,bot, width,height, squarePixelSize);
-
-    cudaDeviceSynchronize();
-
-    rays.resize(size);
-    cudaError_t copyErr = cudaMemcpy(rays.data(), rawRay, size * sizeof(Raytracer::Ray), cudaMemcpyDefault);
-    if (copyErr != cudaSuccess) {
-        std::cout << "something wnet wrong while copying ray data over COPYING " << size * sizeof(Raytracer::Ray) << " Bytes";
-        cudaFree(rawRay);
-        return;
-    }
-
-    cudaFree(rawRay);
-}
-
-__global__ void RayHittableCollision(Raytracer::Ray* rays, int numRays, Raytracer::Hittable* hittables, int numHittables, Raytracer::HitRecord* records){
+__device__ glm::vec3 RayHittableCollision(Raytracer::Ray ray, Raytracer::Hittable* hittables, int numHittables){
     int index = threadIdx.x + (blockDim.x * blockIdx.x);
 
     // invalid index
 
-    if(index >= numRays){
-        return;
-    }
-
-    Raytracer::Ray ray = rays[index];
-
     Raytracer::HitRecord hi = ray.RayIntersectShapes(hittables, numHittables);
 
+    printf("X: %f", hittables[0].sphere.radius);
     if(hi.hitDistance < 0.0f){
-        records[index].hitDistance = -1.0f;
-        records[index].color = glm::vec3(0.0f);
-        return;
+        return glm::vec3(0.0f);
     }
 
     Raytracer::HitRecord finalRecord = hi;
 
     int numBounced = 0;
+
     glm::vec3 accumulatedColor = hi.color;
     unsigned int seed = (unsigned int)index;
     while(numBounced < maxNumBounces){
@@ -150,74 +88,54 @@ __global__ void RayHittableCollision(Raytracer::Ray* rays, int numRays, Raytrace
         hi = ray.RayIntersectShapes(hittables, numHittables);
 
         if (hi.hitDistance < 0.0f) {
+            printf("found hit");    
             accumulatedColor *= glm::vec3(1.0f, 1.0f, 1.0f);
             break;
         }
 
-        accumulatedColor *= (hi.color * .5f);
+        accumulatedColor *= (hi.color);
 
         numBounced++;
     }
 
-    finalRecord.color = accumulatedColor;
-    records[index] = finalRecord;
+    return accumulatedColor;
 }
 
-void Camera::launchCollisionKernel(const std::vector<std::shared_ptr<Raytracer::Hittable>>& hittables){
-    Raytracer::Ray* raysLocal = nullptr;
-    int numRays = rays.size();
+__global__ void RenderPass(int numRays, Raytracer::Hittable* hittables, int numHittables, glm::vec3* colors, CameraRayGenerationInfo camInfo, double currTime){
+    int index = threadIdx.x + (blockDim.x * blockIdx.x);
 
-    int rayBytes = numRays * sizeof(Raytracer::Ray);
-
-    cudaMallocManaged(&raysLocal, rayBytes);
-    // 
-    cudaMemcpy(raysLocal, rays.data(), rayBytes, cudaMemcpyDefault);
-
-
-    Raytracer::Hittable* hittableLocal; 
-    int numHittables = hittables.size();
-    int hittableBytes = numHittables * sizeof(Raytracer::Hittable);
-
-    cudaMallocManaged(&hittableLocal, hittableBytes);
-
-    for (int i = 0; i < numHittables; i++) {
-        if (!hittables[i]) {
-            std::cout << "this shape isnt initlized index " << i;
-            cudaMemset(&hittableLocal[i], 0, sizeof(Raytracer::Hittable));
-            continue;
-        }
-        cudaMemcpy(&hittableLocal[i], hittables[i].get(), sizeof(Raytracer::Hittable), cudaMemcpyDefault);
+    if(index < numRays){
+        Raytracer::Ray ray = Raytracer::generateRayWithDeviation(camInfo,currTime,index);
+        glm::vec3 color = RayHittableCollision(ray, hittables, numHittables);
+        colors[index] += color;
     }
 
-    Raytracer::HitRecord* localRecords;
+}
 
-    cudaMallocManaged(&localRecords,numRays * sizeof(Raytracer::HitRecord));
+std::tuple<Raytracer::Hittable*, glm::vec3*> initGPUMemory(const std::vector<std::shared_ptr<Raytracer::Hittable>>& hittables, int width, int height){
+    int numHittables = hittables.size();
+    int numPixels = height * width;
+    Raytracer::Hittable *localHittable;
+    cudaMalloc(&localHittable, sizeof(Raytracer::Hittable) * numHittables);
+    
+    for(int i = 0; i < numHittables; i++){
+        cudaMemcpy(&localHittable[i], &hittables[i], sizeof(Raytracer::Hittable), cudaMemcpyHostToDevice);
+    }
 
+    glm::vec3* colors;
+    int colorBytes = numPixels * sizeof(glm::vec3);
+
+    cudaMalloc(&colors,colorBytes);
+    cudaMemset(colors, 0, colorBytes);
+    return std::make_tuple(localHittable,colors);
+}
+
+void launchRenderPass(Raytracer::Hittable* hittables, int numHittables, glm::vec3* colors, int numRays, CameraRayGenerationInfo camInfo, double currTime){
     int threads = 256;
     int blocks = (numRays + threads - 1) / threads;
-    RayHittableCollision<<<blocks, threads>>>(raysLocal, numRays, hittableLocal, numHittables, localRecords);
-    
 
-    cudaError_t launchErr = cudaGetLastError();
-    if (launchErr != cudaSuccess) {
-        std::cerr << "Kernel launch failed: " << cudaGetErrorString(launchErr) << std::endl;
-    }
-
-    cudaError_t syncErr = cudaDeviceSynchronize();
-    if (syncErr != cudaSuccess) {
-        std::cerr << "CUDA Sync Error: " << cudaGetErrorString(syncErr) << std::endl;
-        exit(EXIT_FAILURE); 
-    }
-
-    hitRecords.resize(numRays);
-
-    cudaMemcpy(hitRecords.data(), localRecords, numRays * sizeof(Raytracer::Ray), cudaMemcpyDefault);
-
-    cudaFree(localRecords);
-    cudaFree(hittableLocal);
-    cudaFree(raysLocal);
+    RenderPass<<<blocks, threads>>>(numRays, hittables, numHittables, colors, camInfo, currTime);
 }
-
 
 
 
@@ -237,41 +155,45 @@ void writeColorsToPPM(std::vector<glm::vec3> colors, int height, int width){
     // std::cout << std::endl;
 }
 
-void Camera::shootRays(const std::vector<std::shared_ptr<Raytracer::Hittable>>& hittables){
+
+void Camera::Render(const std::vector<std::shared_ptr<Raytracer::Hittable>>& hittables){
     glm::vec3 backgroundColor = glm::vec3(0,0,0);
 
     int width = viewportInfo->width;
     int height = viewportInfo->height;
+    int numRays = width * height;
 
+    float left = transform.position.x - (width / 2.0f);
     float bot = transform.position.y - (height / 2.0f);
 
-    float size = width * height;
-    std::vector<glm::vec3> colors;
-    colors.reserve(size);
+    std::tuple<Raytracer::Hittable*, glm::vec3*> memoryTuple = initGPUMemory(hittables, width, height);
+
+    Raytracer::Hittable* hittablesPTR = std::get<0>(memoryTuple);
+    glm::vec3* colorsPTR = std::get<1>(memoryTuple);
+
+    CameraRayGenerationInfo camInfo;
+
+    camInfo.botOffset = bot;
+    camInfo.leftOffset = left;
+    camInfo.camPos = transform.position;
+    camInfo.forward = transform.forward();
+    camInfo.right = transform.right();
+    camInfo.up = transform.up();
+    camInfo.width = width;
+    camInfo.height = height;
     
-    launchCollisionKernel(hittables);
 
-    int pixelIndex = 0;
-    int raysPerPixel = squarePixelSize * squarePixelSize;
-    glm::vec3 accumulatedColor = glm::vec3(0);
-    for(int i = 0; i < hitRecords.size(); i++){
-        auto hit = hitRecords.at(i);
-
-        if(hit.hitDistance > -1.0f){
-            accumulatedColor += hit.color;
-        }
-        else{
-            accumulatedColor += glm::vec3(0);
-        }
-
-        // write only every pixel
-        bool flush = (i + 1) % raysPerPixel == 0;
-
-        if(flush){
-            colors.push_back(accumulatedColor / (float) raysPerPixel);
-            accumulatedColor = glm::vec3(0);
-        }
+    for(int i = 0; i < 100; i++){
+        auto now = std::chrono::system_clock::now();
+        auto epoch = now.time_since_epoch();
+        double currTime = std::chrono::duration_cast<std::chrono::milliseconds>(epoch).count();
+        launchRenderPass(hittablesPTR, hittables.size(), colorsPTR, numRays, camInfo, currTime);
     }
-    writeColorsToPPM(colors, height, width);
 
+    std::vector<glm::vec3> colors;
+
+    colors.resize(numRays);
+    cudaMemcpy(colors.data(), colorsPTR, numRays * sizeof(glm::vec3), cudaMemcpyDeviceToHost);
+
+    // writeColorsToPPM(colors, height, width);
 }

@@ -2,6 +2,7 @@
 
 #include "headers/Camera.hpp"
 #include "headers/Hittable.cuh"
+#include "headers/Ray.cuh"
 #include "headers/Sphere.cuh"
 #include <glm/ext/vector_float3.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -83,9 +84,8 @@ int main(int argc, char** argv){
     shapeList.push_back(std::make_shared<Raytracer::Hittable>(hit3));
 
 
-    cam.generateRays();
 
-    cam.shootRays(shapeList);
+    cam.Render(shapeList);
 
     std::cout << "RENDERING IS DONE! \n INSHALLAH ITS RIGHT!\n";
 

@@ -3,6 +3,9 @@
 #include "./headers/Ray.cuh"
 #include "./headers/Hittable.cuh"
 #include "headers/HitRecord.hpp"
+#include "headers/Math.cuh"
+#include "headers/CameraRayGenerationInfo.hpp"
+
 
 __device__ Raytracer::HitRecord Raytracer::Ray::RayIntersectShapes(Raytracer::Hittable* hittables, const int numHittables){
     Raytracer::HitRecord closestRecord;
@@ -28,4 +31,24 @@ __device__ Raytracer::HitRecord Raytracer::Ray::RayIntersectShapes(Raytracer::Hi
     }
 
     return closestRecord;
+}
+
+__device__ Raytracer::Ray Raytracer::generateRayWithDeviation(CameraRayGenerationInfo camInfo, double currTime, int index){
+    unsigned int seed = (unsigned int) index + currTime;
+
+    glm::vec3 deviation = Raytracer::randomUnitVec(seed);
+
+    int pixelX = index % camInfo.width;
+    int pixelY = index / camInfo.width;
+
+    glm::vec3 origin = camInfo.camPos + (camInfo.up * (pixelY + camInfo.botOffset + deviation.y)) + (camInfo.right * (pixelX + camInfo.leftOffset +  deviation.x));
+
+    glm::vec3 dir = camInfo.forward;
+
+    Raytracer::Ray ray;
+
+    ray.dir = dir;
+    ray.origin = origin;
+
+    return ray;
 }

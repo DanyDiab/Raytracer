@@ -3,6 +3,8 @@
 #include "HitRecord.hpp"
 #include <glm/geometric.hpp>
 #include <glm/vec3.hpp>
+#include "CameraRayGenerationInfo.hpp"
+
 
 namespace Raytracer{
     struct Ray{
@@ -24,8 +26,7 @@ namespace Raytracer{
         }
 
         __device__ Raytracer::HitRecord RayIntersectShapes(Raytracer::Hittable* hittables, const int numHittables);
-
-
-
     };
+    __device__ Raytracer::Ray generateRayWithDeviation(CameraRayGenerationInfo camInfo, double currTime, int index);
+
 }
