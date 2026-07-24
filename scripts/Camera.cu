@@ -23,6 +23,7 @@
 #include "headers/CameraRayGenerationInfo.hpp"
 #include <device_launch_parameters.h>
 #include <cuda/std/cmath>
+#include "headers/RayAveraging.cuh"
 
 constexpr int maxNumBounces = 10;
 // how big is the square for each pixel? square it and this is the number of rays per pixel
@@ -182,16 +183,22 @@ void Camera::Render(const std::vector<std::shared_ptr<Raytracer::Hittable>>& hit
     camInfo.width = width;
     camInfo.height = height;
     
+    int samples = 1000;
 
-    for(int i = 0; i < 100; i++){
+    for(int i = 0; i < samples; i++){
         auto now = std::chrono::system_clock::now();
         auto epoch = now.time_since_epoch();
-        double currTime = std::chrono::duration_cast<std::chrono::milliseconds>(epoch).count();
+        double currTime = std::chrono::duration_cast<std::chrono::nanoseconds>(epoch).count();
         launchRenderPass(hittablesPTR, hittables.size(), colorsPTR, numRays, camInfo, currTime);
     }
 
-    std::vector<glm::vec3> colors;
+    int threads = 256;
+    int blocks = (numRays + threads - 1) / threads;
 
+    AverageRayColors<<<blocks, threads>>>(colorsPTR,numRays,samples);
+
+
+    std::vector<glm::vec3> colors;
     colors.resize(numRays);
     cudaMemcpy(colors.data(), colorsPTR, numRays * sizeof(glm::vec3), cudaMemcpyDeviceToHost);
 
