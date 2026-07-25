@@ -2,6 +2,7 @@
 
 #include "headers/Camera.hpp"
 #include "headers/Hittable.cuh"
+#include "headers/Ray.cuh"
 #include "headers/Sphere.cuh"
 #include <glm/ext/vector_float3.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -50,13 +51,18 @@ int main(int argc, char** argv){
         .position = glm::vec3(0,300,300), 
     };
 
+    Raytracer::Sphere sphere4 = Raytracer::Sphere{
+        .radius = 300.0f, 
+        .position = glm::vec3(0,300,300), 
+    };
+
 
 
     Raytracer::Hittable hit = Raytracer::Hittable(sphere);
     Raytracer::Hittable hit1 = Raytracer::Hittable(sphere1);
     Raytracer::Hittable hit2 = Raytracer::Hittable(sphere2);
     Raytracer::Hittable hit3 = Raytracer::Hittable(sphere3);
-
+    Raytracer::Hittable hit4 = Raytracer::Hittable(sphere4);
 
     
     hit.mat = {
@@ -73,6 +79,9 @@ int main(int argc, char** argv){
     hit3.mat = {
         .color = glm::vec3(.1,.1,1)
     };
+    hit4.mat = {
+        .color = glm::vec3(.1,.1,1)
+    };
     
 
     std::vector<std::shared_ptr<Raytracer::Hittable>> shapeList;
@@ -81,11 +90,12 @@ int main(int argc, char** argv){
     shapeList.push_back(std::make_shared<Raytracer::Hittable>(hit1));
     shapeList.push_back(std::make_shared<Raytracer::Hittable>(hit2));
     shapeList.push_back(std::make_shared<Raytracer::Hittable>(hit3));
+    shapeList.push_back(std::make_shared<Raytracer::Hittable>(hit4));
 
 
-    cam.generateRays();
 
-    cam.shootRays(shapeList);
+
+    cam.Render(shapeList);
 
     std::cout << "RENDERING IS DONE! \n INSHALLAH ITS RIGHT!\n";
 
