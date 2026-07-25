@@ -3,8 +3,8 @@
 #include "./headers/Ray.cuh"
 #include "./headers/Hittable.cuh"
 #include "headers/HitRecord.hpp"
-#include "headers/Math.cuh"
 #include "headers/CameraRayGenerationInfo.hpp"
+#include "headers/PRNG.cuh"
 
 
 __device__ Raytracer::HitRecord Raytracer::Ray::RayIntersectShapes(Raytracer::Hittable* hittables, const int numHittables){
@@ -33,10 +33,9 @@ __device__ Raytracer::HitRecord Raytracer::Ray::RayIntersectShapes(Raytracer::Hi
     return closestRecord;
 }
 
-__device__ Raytracer::Ray Raytracer::generateRayWithDeviation(CameraRayGenerationInfo camInfo, double currTime, int index){
-    unsigned int seed = (unsigned int) index + currTime;
+__device__ Raytracer::Ray Raytracer::generateRayWithDeviation(CameraRayGenerationInfo camInfo, double currTime, int index, curandState_t* prngState){
 
-    glm::vec3 deviation = Raytracer::randomUnitVec(seed);
+    glm::vec3 deviation = PRNG::randomUnitVec(prngState);
 
     int pixelX = index % camInfo.width;
     int pixelY = index / camInfo.width;
@@ -49,6 +48,6 @@ __device__ Raytracer::Ray Raytracer::generateRayWithDeviation(CameraRayGeneratio
 
     ray.dir = dir;
     ray.origin = origin;
-
+    
     return ray;
 }

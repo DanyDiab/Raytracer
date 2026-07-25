@@ -1,6 +1,7 @@
 #pragma once
 
 #include "HitRecord.hpp"
+#include <curand_kernel.h>
 #include <glm/geometric.hpp>
 #include <glm/vec3.hpp>
 #include "CameraRayGenerationInfo.hpp"
@@ -27,6 +28,8 @@ namespace Raytracer{
 
         __device__ Raytracer::HitRecord RayIntersectShapes(Raytracer::Hittable* hittables, const int numHittables);
     };
-    __device__ Raytracer::Ray generateRayWithDeviation(CameraRayGenerationInfo camInfo, double currTime, int index);
+    __device__ Raytracer::Ray generateRayWithDeviation(CameraRayGenerationInfo camInfo, double currTime, int index, curandState_t* prngState);
+
+
 
 }
