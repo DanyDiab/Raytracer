@@ -18,56 +18,57 @@ int main(int argc, char** argv){
     }
     ViewportInfo vi{
         .near = .01f,
-        .far = 100.0f,
+        .far = 10000.0f,
         .width = 960,
         .height = 540
     };
     
-    Camera cam(vi,glm::vec3(0,0,-50), glm::quat(glm::vec3(0,0,0)));
+Camera cam(vi, glm::vec3(0.0f, -20.0f, -1000.0f), glm::quat(glm::vec3(0.0f, 0.0f, 0.0f)));
 
-    Raytracer::Sphere sphere = Raytracer::Sphere{
-        .radius = 200.0f,
-        .position = glm::vec3(0,0,700),
-    };
+Raytracer::Sphere sphere = Raytracer::Sphere{
+    .radius = 10000.0f,
+    .position = glm::vec3(0.0f, 10200.0f, 0.0f),
+};
 
-    Raytracer::Sphere sphere1 = Raytracer::Sphere{
-        .radius = 200.0f, 
-        .position = glm::vec3(400,0,150), 
-    };
+Raytracer::Sphere sphere1 = Raytracer::Sphere{
+    .radius = 100.0f, 
+    .position = glm::vec3(200.0f, 100.0f, 0.0f), 
+};
 
-    Raytracer::Sphere sphere2 = Raytracer::Sphere{
-        .radius = 300.0f, 
-        .position = glm::vec3(-450,0,500), 
-    };
+Raytracer::Sphere sphere2 = Raytracer::Sphere{
+    .radius = 100.0f, 
+    .position = glm::vec3(-200.0f, 100.0f, 0.0f), 
+};
 
-    Raytracer::Sphere sphere3 = Raytracer::Sphere{
-        .radius = 300.0f, 
-        .position = glm::vec3(0,300,600), 
-    };
+Raytracer::Sphere sphere3 = Raytracer::Sphere{
+    .radius = 100.0f, 
+    .position = glm::vec3(0.0f, 100.0f, 0.0f),
+};
 
+Raytracer::Hittable hit = Raytracer::Hittable(sphere);
+Raytracer::Hittable hit1 = Raytracer::Hittable(sphere1);
+Raytracer::Hittable hit2 = Raytracer::Hittable(sphere2);
+Raytracer::Hittable hit3 = Raytracer::Hittable(sphere3);
 
-    Raytracer::Hittable hit = Raytracer::Hittable(sphere);
-    Raytracer::Hittable hit1 = Raytracer::Hittable(sphere1);
-    Raytracer::Hittable hit2 = Raytracer::Hittable(sphere2);
-    Raytracer::Hittable hit3 = Raytracer::Hittable(sphere3);
+hit.mat = {
+    .albedo = glm::vec3(180.0f / 255.0f, 200.0f / 255.0f, 0.0f / 255.0f),
+    .metallic = 0.0f
+};
 
-    
-    hit.mat = {
-        .color = glm::vec3(1,1,1)
-    };
+hit1.mat = {
+    .albedo = glm::vec3(230.0f / 255.0f, 195.0f / 255.0f, 65.0f / 255.0f),
+    .metallic = 1.0f
+};
 
-    hit1.mat = {
-        .color = glm::vec3(.1,1,.1)
-    };
-// 219, 136, 136
-    hit2.mat = {
-        .color = glm::vec3(219.0/255.0,136.0/255.0,136.0/255.0)
-    };
-    hit3.mat = {
-        .color = glm::vec3(.1,.1,1)
-    };
+hit2.mat = {
+    .albedo = glm::vec3(0.95f, 0.95f, 0.95f),
+    .metallic = 1.0f
+};
 
-    
+hit3.mat = {
+    .albedo = glm::vec3(0.15f, 0.35f, 0.75f),
+    .metallic = 0.0f
+};
 
     std::vector<std::shared_ptr<Raytracer::Hittable>> shapeList;
 

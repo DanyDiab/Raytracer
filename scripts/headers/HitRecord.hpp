@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Material.hpp"
 #include <cuda_runtime.h>
 #include <glm/ext/vector_float3.hpp>
 
@@ -12,6 +13,6 @@ namespace Raytracer{
     struct HitRecord{
         float hitDistance;
         glm::vec3 normal;
-        glm::vec3 color;
+        Material mat;
     };
 };
