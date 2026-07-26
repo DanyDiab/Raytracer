@@ -116,7 +116,6 @@ GPUMemory initGPUMemory(const std::vector<std::shared_ptr<Raytracer::Hittable>>&
         const Raytracer::Hittable* src = hittables[i].get();
         cudaMemcpy(dest, src, sizeof(Raytracer::Hittable), cudaMemcpyHostToDevice);
     }
-    cudaMemcpy(localHittable, &hittables, sizeof(Raytracer::Hittable) * numHittables, cudaMemcpyHostToDevice);
 
     glm::vec3* colors;
     int colorBytes = numPixels * sizeof(glm::vec3);
@@ -197,7 +196,7 @@ void Camera::Render(const std::vector<std::shared_ptr<Raytracer::Hittable>>& hit
     camInfo.width = width;
     camInfo.height = height;
     
-    int samples = 100000;
+    int samples = 1000;
 
     for(int i = 0; i < samples; i++){
         auto now = std::chrono::system_clock::now();

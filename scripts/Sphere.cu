@@ -8,7 +8,12 @@
 #include <glm/vec3.hpp>
 
 __device__ glm::vec3 SphereRayNormal(const Raytracer::Sphere sphere, const Raytracer::Ray ray, const float distance){
-    return glm::normalize(ray.origin + (ray.dir * distance));
+
+    glm::vec3 hitPoint = ray.origin + (ray.dir * distance);
+    glm::vec3 sphereToRay = hitPoint - sphere.position;
+
+    return glm::normalize(sphereToRay);
+
 }
 
 __device__ float SphereRayCollide(const Raytracer::Sphere sphere, const Raytracer::Ray ray){
