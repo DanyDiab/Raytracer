@@ -61,8 +61,13 @@ __device__ glm::vec3 Raytracer::Ray::determineScatterDirection(Raytracer::HitRec
     bool metallicScatter = randT < metallic;
     glm::vec3 dir;
     if(metallicScatter){
+        float roughness = mat.roughness;
         // subtract height twice and translate
-        dir = this->dir - (2 * glm::dot(this->dir, record.normal) * record.normal);
+
+        glm::vec3 reflect = this->dir - (2 * glm::dot(this->dir, record.normal) * record.normal);
+        // add rand scaled by roughness
+        glm::vec3 fuzz = PRNG::randomUnitVec(state) * roughness;
+        dir = reflect + fuzz;
     }
     else{
         dir = record.normal + PRNG::randomUnitVecSameHemisphere(record.normal, state);

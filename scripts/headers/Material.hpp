@@ -7,6 +7,7 @@ namespace Raytracer{
         glm::vec3 albedo;
         // 1 = fully metallic 0 = diffuse 
         float metallic;
+        // how much fuzz?
         float roughness;
     };
 }

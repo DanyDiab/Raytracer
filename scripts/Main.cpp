@@ -57,12 +57,14 @@ hit.mat = {
 
 hit1.mat = {
     .albedo = glm::vec3(230.0f / 255.0f, 195.0f / 255.0f, 65.0f / 255.0f),
-    .metallic = 1.0f
+    .metallic = 1.0f,
+    .roughness = 0.0f
 };
 
 hit2.mat = {
     .albedo = glm::vec3(0.95f, 0.95f, 0.95f),
-    .metallic = 1.0f
+    .metallic = 1.0f,
+    .roughness = 1.0f
 };
 
 hit3.mat = {
@@ -77,17 +79,10 @@ hit3.mat = {
     shapeList.push_back(std::make_shared<Raytracer::Hittable>(hit2));
     shapeList.push_back(std::make_shared<Raytracer::Hittable>(hit3));
 
-
-
-
-
     cam.Render(shapeList);
 
-    std::cout << "RENDERING IS DONE! \n INSHALLAH ITS RIGHT!\n";
-
-
     while(window.updateWindow()){
-
+        break;
     }
 
     window.destroyWindow();

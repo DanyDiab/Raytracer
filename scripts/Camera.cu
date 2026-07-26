@@ -200,7 +200,7 @@ void Camera::Render(const std::vector<std::shared_ptr<Raytracer::Hittable>>& hit
     camInfo.width = width;
     camInfo.height = height;
     
-    int samples = 10000;
+    int samples = 1000;
 
     for(int i = 0; i < samples; i++){
         auto now = std::chrono::system_clock::now();
