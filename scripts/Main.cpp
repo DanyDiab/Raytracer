@@ -25,20 +25,14 @@ int main(int argc, char** argv){
     
     Camera cam(vi,glm::vec3(0,0,-50), glm::quat(glm::vec3(0,0,0)));
 
-    // Sphere sphere(glm::vec3(0,0,100),glm::quat(glm::vec3(0,180,0)), glm::vec3(50,50,50));
-    // sphere.mat.color = glm::vec3(1,0,0);
-
-
-    // Sphere sphere1(glm::vec3(100,0,70),glm::quat(glm::vec3(0,180,0)), glm::vec3(80,80,80));
-    // sphere1.mat.color = glm::vec3(0,1,0);
     Raytracer::Sphere sphere = Raytracer::Sphere{
-        .radius = 50.0f,
-        .position = glm::vec3(0,0,100),
+        .radius = 200.0f,
+        .position = glm::vec3(0,0,700),
     };
 
     Raytracer::Sphere sphere1 = Raytracer::Sphere{
-        .radius = 80.0f, 
-        .position = glm::vec3(100,0,70), 
+        .radius = 200.0f, 
+        .position = glm::vec3(400,0,150), 
     };
 
     Raytracer::Sphere sphere2 = Raytracer::Sphere{
@@ -48,21 +42,14 @@ int main(int argc, char** argv){
 
     Raytracer::Sphere sphere3 = Raytracer::Sphere{
         .radius = 300.0f, 
-        .position = glm::vec3(0,300,300), 
+        .position = glm::vec3(0,300,600), 
     };
-
-    Raytracer::Sphere sphere4 = Raytracer::Sphere{
-        .radius = 300.0f, 
-        .position = glm::vec3(0,300,300), 
-    };
-
 
 
     Raytracer::Hittable hit = Raytracer::Hittable(sphere);
     Raytracer::Hittable hit1 = Raytracer::Hittable(sphere1);
     Raytracer::Hittable hit2 = Raytracer::Hittable(sphere2);
     Raytracer::Hittable hit3 = Raytracer::Hittable(sphere3);
-    Raytracer::Hittable hit4 = Raytracer::Hittable(sphere4);
 
     
     hit.mat = {
@@ -79,9 +66,7 @@ int main(int argc, char** argv){
     hit3.mat = {
         .color = glm::vec3(.1,.1,1)
     };
-    hit4.mat = {
-        .color = glm::vec3(.1,.1,1)
-    };
+
     
 
     std::vector<std::shared_ptr<Raytracer::Hittable>> shapeList;
@@ -90,7 +75,7 @@ int main(int argc, char** argv){
     shapeList.push_back(std::make_shared<Raytracer::Hittable>(hit1));
     shapeList.push_back(std::make_shared<Raytracer::Hittable>(hit2));
     shapeList.push_back(std::make_shared<Raytracer::Hittable>(hit3));
-    shapeList.push_back(std::make_shared<Raytracer::Hittable>(hit4));
+
 
 
 
