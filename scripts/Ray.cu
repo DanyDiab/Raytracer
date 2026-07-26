@@ -1,16 +1,17 @@
 #include <cstdio>
+#include <glm/ext/quaternion_geometric.hpp>
 
 #include "./headers/Ray.cuh"
 #include "./headers/Hittable.cuh"
 #include "headers/HitRecord.hpp"
 #include "headers/CameraRayGenerationInfo.hpp"
+#include "headers/Material.hpp"
 #include "headers/PRNG.cuh"
 
 
 __device__ Raytracer::HitRecord Raytracer::Ray::RayIntersectShapes(Raytracer::Hittable* hittables, const int numHittables){
     Raytracer::HitRecord closestRecord;
     closestRecord.hitDistance = -1.0f;
-    closestRecord.color = glm::vec3(0);
     closestRecord.normal = glm::vec3(0);
     
     // found closer hit point
@@ -24,9 +25,7 @@ __device__ Raytracer::HitRecord Raytracer::Ray::RayIntersectShapes(Raytracer::Hi
 
             closestRecord.hitDistance = rayHR.hitDistance;
             closestRecord.normal = rayHR.normal;
-            glm::vec3 newColor = shape.mat.color;
-
-            closestRecord.color = newColor;
+            closestRecord.mat = shape.mat;
         }
     }
 
@@ -50,4 +49,29 @@ __device__ Raytracer::Ray Raytracer::generateRayWithDeviation(CameraRayGeneratio
     ray.origin = origin;
     
     return ray;
+}
+
+__device__ glm::vec3 Raytracer::Ray::determineScatterDirection(Raytracer::HitRecord record, curandState_t* state){
+    Material mat = record.mat;
+
+    float metallic = mat.metallic;
+
+    float randT = PRNG::randFloat(state);
+
+    bool metallicScatter = randT < metallic;
+    glm::vec3 dir;
+    if(metallicScatter){
+        float roughness = mat.roughness;
+        // subtract height twice and translate
+
+        glm::vec3 reflect = this->dir - (2 * glm::dot(this->dir, record.normal) * record.normal);
+        // add rand scaled by roughness
+        glm::vec3 fuzz = PRNG::randomUnitVec(state) * roughness;
+        dir = reflect + fuzz;
+    }
+    else{
+        dir = record.normal + PRNG::randomUnitVecSameHemisphere(record.normal, state);
+    }
+
+    return glm::normalize(dir);
 }
