@@ -66,8 +66,8 @@ __device__ glm::vec3 RayHittableCollision(Raytracer::Ray ray, Raytracer::Hittabl
     int numBounced = 0;
 
     glm::vec3 throughput = hi.mat.albedo;
-    glm::vec3 accumulatedColor = glm::vec3(0.0);
-
+    glm::vec3 incomingLight = glm::vec3(0);
+    glm::vec3 outputtedLight = hi.mat.emittedColor;
 
     unsigned int seed = (unsigned int)index;
     
@@ -80,18 +80,21 @@ __device__ glm::vec3 RayHittableCollision(Raytracer::Ray ray, Raytracer::Hittabl
 
         hi = ray.RayIntersectShapes(hittables, numHittables);
 
-        
         if (hi.hitDistance < 0.0f) {
-            accumulatedColor = throughput * skyColor;
+            incomingLight += skyColor * throughput;
             break;
         }
 
-        throughput *= (hi.mat.albedo);
+        outputtedLight += hi.mat.emittedColor;
 
+        incomingLight += outputtedLight * throughput;
+
+        throughput *= (hi.mat.albedo);
+        
         numBounced++;
     }
 
-    return accumulatedColor;
+    return incomingLight;
 }
 
 __global__ void RenderPass(int numRays, Raytracer::Hittable* hittables, int numHittables, glm::vec3* colors, CameraRayGenerationInfo camInfo, double currTime, curandState_t* prngStates, glm::vec3 skyColor){
@@ -178,7 +181,8 @@ void writeColorsToPPM(std::vector<glm::vec3> colors, int height, int width){
 
 // 155, 203, 242
 void Camera::Render(const std::vector<std::shared_ptr<Raytracer::Hittable>>& hittables){
-    glm::vec3 backgroundColor = glm::vec3(155 / 255.0,203 / 255.0,242 / 255.0);
+    // glm::vec3 skyColor = glm::vec3(155 / 255.0,203 / 255.0,242 / 255.0);
+    glm::vec3 skyColor = glm::vec3(0);
 
     int width = viewportInfo->width;
     int height = viewportInfo->height;
@@ -200,13 +204,13 @@ void Camera::Render(const std::vector<std::shared_ptr<Raytracer::Hittable>>& hit
     camInfo.width = width;
     camInfo.height = height;
     
-    int samples = 1000;
+    int samples = 10000;
 
     for(int i = 0; i < samples; i++){
         auto now = std::chrono::system_clock::now();
         auto epoch = now.time_since_epoch();
         double currTime = std::chrono::duration_cast<std::chrono::nanoseconds>(epoch).count();
-        launchRenderPass(GPUmemory, hittables.size(), numRays, camInfo, currTime, backgroundColor);
+        launchRenderPass(GPUmemory, hittables.size(), numRays, camInfo, currTime, skyColor);
     }
 
     int threads = 256;
