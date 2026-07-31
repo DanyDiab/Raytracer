@@ -96,7 +96,16 @@ __device__ glm::vec3 Raytracer::Ray::determineScatterDirection(Raytracer::HitRec
 
     float randT = PRNG::randFloat(state);
 
+    float transmission = mat.transmission;
+
+    if(randT < transmission){
+        // dielectric
+        float IOR = mat.IOR;
+        return glm::vec3(0);
+    }
+
     bool metallicScatter = randT < metallic;
+
     glm::vec3 dir;
     if(metallicScatter){
         float roughness = mat.roughness;

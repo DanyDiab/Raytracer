@@ -11,5 +11,7 @@ namespace Raytracer{
         float roughness;
         // 
         glm::vec3 emittedColor;
+        float transmission;
+        float IOR;
     };
 }

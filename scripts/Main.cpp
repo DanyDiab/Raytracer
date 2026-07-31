@@ -6,6 +6,7 @@
 #include "headers/Sphere.cuh"
 #include <glm/ext/vector_float3.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <glm/trigonometric.hpp>
 #include <iostream>
 #include <memory>
 #include <system_error>
@@ -23,106 +24,83 @@ int main(int argc, char** argv){
         .height = 540
     };
     
-Camera cam(vi, glm::vec3(0.0f, -20.0f, -300.0f), glm::quat(glm::vec3(0.0f, 0.0f, 0.0f)));
+Camera cam(vi, glm::vec3(0.0f, 60.0f, -150.0f), glm::quat(glm::vec3(glm::radians(15.0f), 0.0f, 0.0f)));
 
+// The pool table surface
 Raytracer::Sphere ground = Raytracer::Sphere{
-    .radius = 500.0f,
-    .position = glm::vec3(0.0f, -500.0f,0.0f),
+    .radius = 10000.0f,
+    .position = glm::vec3(0.0f, -10010.0f, 0.0f), // Surface peaks exactly at y = -10.0f
 };
 
-Raytracer::Sphere sphere1 = Raytracer::Sphere{
-    .radius = 100.0f, 
-    .position = glm::vec3(200.0f, 150.0f, 100.0f), 
+Raytracer::Hittable groundHit = Raytracer::Hittable(ground);
+groundHit.mat = {
+    .albedo = glm::vec3(0.05f, 0.4f, 0.1f), // Billiard green
+    .metallic = 0.0f,
+    .roughness = 0.8f
 };
 
-Raytracer::Sphere sphere2 = Raytracer::Sphere{
-    .radius = 100.0f, 
-    .position = glm::vec3(-200.0f, 150.0f, 0.0f), 
-};
-
-Raytracer::Sphere sphere3 = Raytracer::Sphere{
-    .radius = 100.0f, 
-    .position = glm::vec3(0.0f, 150.0f, 300.0f),
-};
-
-Raytracer::Sphere blueLight = Raytracer::Sphere{
-    .radius = 2000.0f, 
-    .position = glm::vec3(5000.0f, -2000.0f, -800.0f),
-};
-
-Raytracer::Sphere redLight = Raytracer::Sphere{
-    .radius = 5000.0f, 
-    .position = glm::vec3(-8000.0f, 10000.0f, -800.0f),
-};
-
-
+// Sun/Light source to illuminate the scene
 Raytracer::Sphere sun = Raytracer::Sphere{
     .radius = 5000.0f, 
-    .position = glm::vec3(0.0f, -2000.0f, -10000.0f),
+    .position = glm::vec3(0.0f, 4000.0f, -5000.0f),
 };
 
-Raytracer::Hittable hit = Raytracer::Hittable(ground);
-Raytracer::Hittable hit1 = Raytracer::Hittable(sphere1);
-Raytracer::Hittable hit2 = Raytracer::Hittable(sphere2);
-Raytracer::Hittable hit3 = Raytracer::Hittable(sphere3);
 Raytracer::Hittable sunHit = Raytracer::Hittable(sun);
-
-Raytracer::Hittable blueHit = Raytracer::Hittable(blueLight);
-Raytracer::Hittable redHit = Raytracer::Hittable(redLight);
-
-hit.mat = {
-    .albedo = glm::vec3(0.3f, 0.3, 0.3f),
-    .metallic = 1.0f
-};
-
-hit1.mat = {
-    .albedo = glm::vec3(230.0f / 255.0f, 195.0f / 255.0f, 65.0f / 255.0f),
-    .metallic = 0.0f,
-    .roughness = 0.0f
-};
-
-hit2.mat = {
-    .albedo = glm::vec3(0.95f, 0.95f, 0.95f),
-    .metallic = 0.0f,
-    .roughness = 0.3f
-};
-
-hit3.mat = {
-    .albedo = glm::vec3(0.15f, 0.35f, 0.75f),
-    .metallic = 0.0f,
-};
-
-blueHit.mat = {
-    .albedo = glm::vec3(0),
-    .emittedColor = glm::vec3(0.0,0.0,4.0)
-};
-
-redHit.mat = {
-    .albedo = glm::vec3(0),
-    .emittedColor = glm::vec3(4.0,0.0,0.0)
-};
-
-
-
-
 sunHit.mat = {
-    .albedo = glm::vec3(0),
-    // 241, 255, 171
-    // .emittedColor = glm::vec3(241.0/ 255, 255/255.0, 171.0/255)
-    .emittedColor = glm::vec3(1.5)
+    .albedo = glm::vec3(0.0f),
+    .emittedColor = glm::vec3(1.0f)
 };
 
-    std::vector<std::shared_ptr<Raytracer::Hittable>> shapeList;
+std::vector<std::shared_ptr<Raytracer::Hittable>> shapeList;
+shapeList.push_back(std::make_shared<Raytracer::Hittable>(groundHit));
+shapeList.push_back(std::make_shared<Raytracer::Hittable>(sunHit));
 
-    shapeList.push_back(std::make_shared<Raytracer::Hittable>(hit));
-    shapeList.push_back(std::make_shared<Raytracer::Hittable>(hit1));
-    shapeList.push_back(std::make_shared<Raytracer::Hittable>(hit2));
-    shapeList.push_back(std::make_shared<Raytracer::Hittable>(hit3));
-    shapeList.push_back(std::make_shared<Raytracer::Hittable>(sunHit));
+// Standard 15 pool ball colors
+glm::vec3 ballColors[15] = {
+    glm::vec3(1.0f, 0.8f, 0.1f),    // 1 Yellow
+    glm::vec3(0.1f, 0.2f, 0.8f),    // 2 Blue
+    glm::vec3(0.8f, 0.1f, 0.1f),    // 3 Red
+    glm::vec3(0.4f, 0.1f, 0.6f),    // 4 Purple
+    glm::vec3(1.0f, 0.4f, 0.1f),    // 5 Orange
+    glm::vec3(0.1f, 0.6f, 0.2f),    // 6 Green
+    glm::vec3(0.5f, 0.1f, 0.2f),    // 7 Maroon
+    glm::vec3(0.05f, 0.05f, 0.05f), // 8 Black
+    glm::vec3(1.0f, 0.9f, 0.2f),    // 9 Yellow stripe
+    glm::vec3(0.2f, 0.4f, 0.9f),    // 10 Blue stripe
+    glm::vec3(0.9f, 0.2f, 0.2f),    // 11 Red stripe
+    glm::vec3(0.6f, 0.2f, 0.8f),    // 12 Purple stripe
+    glm::vec3(1.0f, 0.6f, 0.2f),    // 13 Orange stripe
+    glm::vec3(0.2f, 0.8f, 0.3f),    // 14 Green stripe
+    glm::vec3(0.7f, 0.2f, 0.3f)     // 15 Maroon stripe
+};
 
-    shapeList.push_back(std::make_shared<Raytracer::Hittable>(redHit));
-    shapeList.push_back(std::make_shared<Raytracer::Hittable>(blueHit));
+float radius = 10.0f;
+float spacing = 20.0f; // Distance between centers (2 * radius)
+float zOffset = 17.3205f; // spacing * sqrt(3) / 2 for equilateral packing
+int ballIndex = 0;
 
+for (int row = 0; row < 5; ++row) {
+    for (int col = 0; col <= row; ++col) {
+        float x = (static_cast<float>(col) - (static_cast<float>(row) / 2.0f)) * spacing;
+        float z = static_cast<float>(row) * zOffset;
+
+        Raytracer::Sphere ball = Raytracer::Sphere{
+            .radius = radius,
+            // y = 0.0f places the bottom of the ball at -10.0f, tangent to the ground
+            .position = glm::vec3(x, 0.0f, z) 
+        };
+
+        Raytracer::Hittable ballHit = Raytracer::Hittable(ball);
+        ballHit.mat = {
+            .albedo = ballColors[ballIndex],
+            .metallic = 0.25f,
+            .roughness = 0.1f // Shiny finish for billiard balls
+        };
+
+        shapeList.push_back(std::make_shared<Raytracer::Hittable>(ballHit));
+        ballIndex++;
+    }
+}
 
     cam.Render(shapeList);
 
