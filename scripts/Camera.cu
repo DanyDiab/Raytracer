@@ -179,7 +179,7 @@ void writeColorsToPPM(std::vector<glm::vec3> colors, int height, int width){
 // 155, 203, 242
 void Camera::Render(const std::vector<std::shared_ptr<Raytracer::Hittable>>& hittables){
     // glm::vec3 skyColor = glm::vec3(155 / 255.0,203 / 255.0,242 / 255.0);
-    glm::vec3 skyColor = glm::vec3(0);
+    glm::vec3 skyColor = glm::vec3(.2f,.2f,.2f);
 
     int width = viewportInfo->width;
     int height = viewportInfo->height;
@@ -200,6 +200,7 @@ void Camera::Render(const std::vector<std::shared_ptr<Raytracer::Hittable>>& hit
     camInfo.up = transform.up();
     camInfo.width = width;
     camInfo.height = height;
+    camInfo.fov = 90.0f;
     camInfo.projectionType = PERSPECTIVE;
     
     for(int i = 0; i < samples; i++){

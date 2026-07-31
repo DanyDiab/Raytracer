@@ -23,43 +23,56 @@ int main(int argc, char** argv){
         .height = 540
     };
     
-Camera cam(vi, glm::vec3(0.0f, -20.0f, -1000.0f), glm::quat(glm::vec3(0.0f, 0.0f, 0.0f)));
+Camera cam(vi, glm::vec3(0.0f, -20.0f, -300.0f), glm::quat(glm::vec3(0.0f, 0.0f, 0.0f)));
 
-Raytracer::Sphere sphere = Raytracer::Sphere{
-    .radius = 10000.0f,
-    .position = glm::vec3(0.0f, 10200.0f, 0.0f),
+Raytracer::Sphere ground = Raytracer::Sphere{
+    .radius = 500.0f,
+    .position = glm::vec3(0.0f, -500.0f,0.0f),
 };
 
 Raytracer::Sphere sphere1 = Raytracer::Sphere{
     .radius = 100.0f, 
-    .position = glm::vec3(0.0f, 0.0f, -900.0f), 
+    .position = glm::vec3(200.0f, 150.0f, 100.0f), 
 };
 
 Raytracer::Sphere sphere2 = Raytracer::Sphere{
     .radius = 100.0f, 
-    .position = glm::vec3(-200.0f, 100.0f, 0.0f), 
+    .position = glm::vec3(-200.0f, 150.0f, 0.0f), 
 };
 
 Raytracer::Sphere sphere3 = Raytracer::Sphere{
     .radius = 100.0f, 
-    .position = glm::vec3(0.0f, 100.0f, 0.0f),
+    .position = glm::vec3(0.0f, 150.0f, 300.0f),
 };
+
+Raytracer::Sphere blueLight = Raytracer::Sphere{
+    .radius = 2000.0f, 
+    .position = glm::vec3(5000.0f, -2000.0f, -800.0f),
+};
+
+Raytracer::Sphere redLight = Raytracer::Sphere{
+    .radius = 5000.0f, 
+    .position = glm::vec3(-8000.0f, 10000.0f, -800.0f),
+};
+
 
 Raytracer::Sphere sun = Raytracer::Sphere{
-    .radius = 10000.0f, 
-    .position = glm::vec3(0.0f, -2000.0f, -25000.0f),
+    .radius = 5000.0f, 
+    .position = glm::vec3(0.0f, -2000.0f, -10000.0f),
 };
 
-Raytracer::Hittable hit = Raytracer::Hittable(sphere);
+Raytracer::Hittable hit = Raytracer::Hittable(ground);
 Raytracer::Hittable hit1 = Raytracer::Hittable(sphere1);
 Raytracer::Hittable hit2 = Raytracer::Hittable(sphere2);
 Raytracer::Hittable hit3 = Raytracer::Hittable(sphere3);
 Raytracer::Hittable sunHit = Raytracer::Hittable(sun);
 
+Raytracer::Hittable blueHit = Raytracer::Hittable(blueLight);
+Raytracer::Hittable redHit = Raytracer::Hittable(redLight);
 
 hit.mat = {
-    .albedo = glm::vec3(180.0f / 255.0f, 200.0f / 255.0f, 0.0f / 255.0f),
-    .metallic = 0.0f
+    .albedo = glm::vec3(0.3f, 0.3, 0.3f),
+    .metallic = 1.0f
 };
 
 hit1.mat = {
@@ -70,20 +83,33 @@ hit1.mat = {
 
 hit2.mat = {
     .albedo = glm::vec3(0.95f, 0.95f, 0.95f),
-    .metallic = 1.0f,
+    .metallic = 0.0f,
     .roughness = 0.3f
 };
 
 hit3.mat = {
     .albedo = glm::vec3(0.15f, 0.35f, 0.75f),
-    .metallic = 0.0f
+    .metallic = 0.0f,
 };
+
+blueHit.mat = {
+    .albedo = glm::vec3(0),
+    .emittedColor = glm::vec3(0.0,0.0,4.0)
+};
+
+redHit.mat = {
+    .albedo = glm::vec3(0),
+    .emittedColor = glm::vec3(4.0,0.0,0.0)
+};
+
+
+
 
 sunHit.mat = {
     .albedo = glm::vec3(0),
     // 241, 255, 171
     // .emittedColor = glm::vec3(241.0/ 255, 255/255.0, 171.0/255)
-    .emittedColor = glm::vec3(5)
+    .emittedColor = glm::vec3(1.5)
 };
 
     std::vector<std::shared_ptr<Raytracer::Hittable>> shapeList;
@@ -93,6 +119,9 @@ sunHit.mat = {
     shapeList.push_back(std::make_shared<Raytracer::Hittable>(hit2));
     shapeList.push_back(std::make_shared<Raytracer::Hittable>(hit3));
     shapeList.push_back(std::make_shared<Raytracer::Hittable>(sunHit));
+
+    shapeList.push_back(std::make_shared<Raytracer::Hittable>(redHit));
+    shapeList.push_back(std::make_shared<Raytracer::Hittable>(blueHit));
 
 
     cam.Render(shapeList);

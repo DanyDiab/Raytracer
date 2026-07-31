@@ -16,5 +16,7 @@ struct CameraRayGenerationInfo{
     float botOffset;
     int width;
     int height;
+    
+    float fov;
     enum ProjectionType projectionType;
 };

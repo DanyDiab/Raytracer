@@ -36,14 +36,15 @@ __device__ Raytracer::Ray Raytracer::generateRayWithDeviation(CameraRayGeneratio
 
     glm::vec3 deviation = PRNG::randomUnitVec(prngState);
 
-    int pixelX = index % camInfo.width;
-    int pixelY = index / camInfo.width;
+    int rasterX = index % camInfo.width;
+    int rasterY = index / camInfo.width;
 
     Raytracer::Ray ray;
 
-    glm::vec3 pixelPos = camInfo.camPos + (camInfo.up * (pixelY + camInfo.botOffset + deviation.y)) + (camInfo.right * (pixelX + camInfo.leftOffset +  deviation.x));
     switch(camInfo.projectionType){
         case ORTHOGRAPHIC:{
+            glm::vec3 pixelPos = camInfo.camPos + (camInfo.up * (rasterY + camInfo.botOffset + deviation.y)) + (camInfo.right * (rasterX + camInfo.leftOffset +  deviation.x));
+
             glm::vec3 origin = pixelPos;
 
             glm::vec3 dir = camInfo.forward;
@@ -53,9 +54,27 @@ __device__ Raytracer::Ray Raytracer::generateRayWithDeviation(CameraRayGeneratio
             break;
         }
         case PERSPECTIVE:{
-            glm::vec3 origin = camInfo.camPos;
+            // add .5 to be in the middle of the pixel
+            float NDCx = (static_cast<float>(rasterX) + .5f) / camInfo.width;
+            float NDCy = (static_cast<float>(rasterY) + .5f) / camInfo.height;
+            
+            float screenSpaceX = (NDCx * 2) - 1;
+            // flip Y to match screen space
+            float screenSpaceY = 1 - (NDCy * 2);
+            
+            float aspectRatio = static_cast<float>(camInfo.width) / camInfo.height;
+            
+            float fovRadians = glm::radians(camInfo.fov);
+            float fovScaler = tan(fovRadians * .5f);
 
-            glm::vec3 dir = glm::normalize((pixelPos + camInfo.forward) - origin);
+
+            float pixelX = screenSpaceX * aspectRatio * fovScaler;
+            float pixelY = screenSpaceY * fovScaler;
+
+            glm::vec3 camPlanePos = glm::normalize(glm::vec3(camInfo.forward + (camInfo.right * pixelX) + (camInfo.up * pixelY)));
+
+            glm::vec3 origin = camInfo.camPos;
+            glm::vec3 dir = camPlanePos;
 
             ray.dir = dir;
             ray.origin = origin;
