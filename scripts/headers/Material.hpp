@@ -9,5 +9,7 @@ namespace Raytracer{
         float metallic;
         // how much fuzz?
         float roughness;
+        // 
+        glm::vec3 emittedColor;
     };
 }
