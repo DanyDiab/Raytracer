@@ -17,8 +17,6 @@ struct ViewportInfo{
     int height;
 };
 
-
-
 class Camera{
     public:
         Camera(ViewportInfo vi, glm::vec3 pos, glm::quat rot);
@@ -28,8 +26,6 @@ class Camera{
         std::unique_ptr<ViewportInfo> viewportInfo;
 
         glm::vec3 viewportPos;
-
-        void generateRays();
         void Render(const std::vector<std::shared_ptr<Raytracer::Hittable>>& objects);
 
     private:

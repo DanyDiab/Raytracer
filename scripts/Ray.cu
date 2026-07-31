@@ -39,15 +39,34 @@ __device__ Raytracer::Ray Raytracer::generateRayWithDeviation(CameraRayGeneratio
     int pixelX = index % camInfo.width;
     int pixelY = index / camInfo.width;
 
-    glm::vec3 origin = camInfo.camPos + (camInfo.up * (pixelY + camInfo.botOffset + deviation.y)) + (camInfo.right * (pixelX + camInfo.leftOffset +  deviation.x));
-
-    glm::vec3 dir = camInfo.forward;
-
     Raytracer::Ray ray;
 
-    ray.dir = dir;
-    ray.origin = origin;
-    
+    glm::vec3 pixelPos = camInfo.camPos + (camInfo.up * (pixelY + camInfo.botOffset + deviation.y)) + (camInfo.right * (pixelX + camInfo.leftOffset +  deviation.x));
+    switch(camInfo.projectionType){
+        case ORTHOGRAPHIC:{
+            glm::vec3 origin = pixelPos;
+
+            glm::vec3 dir = camInfo.forward;
+
+            ray.dir = dir;
+            ray.origin = origin;
+            break;
+        }
+        case PERSPECTIVE:{
+            glm::vec3 origin = camInfo.camPos;
+
+            glm::vec3 dir = glm::normalize((pixelPos + camInfo.forward) - origin);
+
+            ray.dir = dir;
+            ray.origin = origin;
+            break;
+        }
+        default:
+            printf("unkown cam type");
+            break;
+
+    }
+
     return ray;
 }
 

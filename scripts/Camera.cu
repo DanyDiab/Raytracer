@@ -28,7 +28,7 @@
 
 constexpr int maxNumBounces = 10;
 // how big is the square for each pixel? square it and this is the number of rays per pixel
-constexpr int squarePixelSize = 5;
+constexpr int samples = 1000;
 
 constexpr int renderTimeSeconds = 60;
 
@@ -52,9 +52,7 @@ Camera::Camera(ViewportInfo vi, glm::vec3 pos, glm::quat rot){
     viewportInfo = std::make_unique<ViewportInfo>(vi);
 }
 
-__device__ glm::vec3 RayHittableCollision(Raytracer::Ray ray, Raytracer::Hittable* hittables, int numHittables, curandState_t* state, glm::vec3 skyColor){
-    int index = threadIdx.x + (blockDim.x * blockIdx.x);
-
+__device__ glm::vec3 RayHittableCollision(Raytracer::Ray ray, Raytracer::Hittable* hittables, int numHittables, curandState_t* state, glm::vec3 skyColor, int index){
     // invalid index
 
     Raytracer::HitRecord hi = ray.RayIntersectShapes(hittables, numHittables);
@@ -63,7 +61,7 @@ __device__ glm::vec3 RayHittableCollision(Raytracer::Ray ray, Raytracer::Hittabl
         return skyColor;
     }
 
-    int numBounced = 0;
+    int numBounced = 1;
 
     glm::vec3 throughput = hi.mat.albedo;
     glm::vec3 incomingLight = glm::vec3(0);
@@ -103,11 +101,10 @@ __global__ void RenderPass(int numRays, Raytracer::Hittable* hittables, int numH
     if(index < numRays){
         curandState_t prngState = prngStates[index];
         Raytracer::Ray ray = Raytracer::generateRayWithDeviation(camInfo,currTime,index, &prngState);
-        glm::vec3 color = RayHittableCollision(ray, hittables, numHittables, &prngState, skyColor);
+        glm::vec3 color = RayHittableCollision(ray, hittables, numHittables, &prngState, skyColor, index);
         colors[index] += color;
 
 		prngStates[index] = prngState;
-
     }
 
 }
@@ -203,9 +200,8 @@ void Camera::Render(const std::vector<std::shared_ptr<Raytracer::Hittable>>& hit
     camInfo.up = transform.up();
     camInfo.width = width;
     camInfo.height = height;
+    camInfo.projectionType = PERSPECTIVE;
     
-    int samples = 10000;
-
     for(int i = 0; i < samples; i++){
         auto now = std::chrono::system_clock::now();
         auto epoch = now.time_since_epoch();

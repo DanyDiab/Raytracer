@@ -32,7 +32,7 @@ Raytracer::Sphere sphere = Raytracer::Sphere{
 
 Raytracer::Sphere sphere1 = Raytracer::Sphere{
     .radius = 100.0f, 
-    .position = glm::vec3(200.0f, 100.0f, 0.0f), 
+    .position = glm::vec3(0.0f, 0.0f, -900.0f), 
 };
 
 Raytracer::Sphere sphere2 = Raytracer::Sphere{
@@ -64,7 +64,7 @@ hit.mat = {
 
 hit1.mat = {
     .albedo = glm::vec3(230.0f / 255.0f, 195.0f / 255.0f, 65.0f / 255.0f),
-    .metallic = 1.0f,
+    .metallic = 0.0f,
     .roughness = 0.0f
 };
 
