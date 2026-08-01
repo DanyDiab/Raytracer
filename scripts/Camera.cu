@@ -28,7 +28,7 @@
 
 constexpr int maxNumBounces = 10;
 // how big is the square for each pixel? square it and this is the number of rays per pixel
-constexpr int samples = 10000;
+constexpr int samples = 1000;
 
 constexpr int renderTimeSeconds = 60;
 

@@ -1,5 +1,7 @@
 #include <cstdio>
+#include <glm/exponential.hpp>
 #include <glm/ext/quaternion_geometric.hpp>
+#include <glm/geometric.hpp>
 
 #include "./headers/Ray.cuh"
 #include "./headers/Hittable.cuh"
@@ -101,7 +103,34 @@ __device__ glm::vec3 Raytracer::Ray::determineScatterDirection(Raytracer::HitRec
     if(randT < transmission){
         // dielectric
         float IOR = mat.IOR;
-        return glm::vec3(0);
+        
+        float dir = glm::dot(this->dir, record.normal);
+
+        // entering, assuming from AIR
+        float etaDiff;
+        if(dir < 0){
+            etaDiff = 1.0f/IOR;
+        }
+        // exiting (once again assuming air)
+        else{
+            etaDiff = mat.IOR;
+        }
+
+        float angleOfIncidence = glm::dot(-this->dir, record.normal);
+        
+        glm::vec3 perp = etaDiff * (this->dir + angleOfIncidence * record.normal);
+
+        // check total internal reflection
+        float k = 1.0f - glm::dot(perp,perp);
+        if(k < 0.0f){
+            // must reflect
+            return this->dir - (2 * glm::dot(this->dir, record.normal) * record.normal);
+        }
+
+        glm::vec3 parallel = -glm::sqrt(k) * record.normal;
+
+        glm::vec3 refractedDir = parallel + perp;
+        return glm::normalize(refractedDir);
     }
 
     bool metallicScatter = randT < metallic;
