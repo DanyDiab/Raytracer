@@ -73,8 +73,15 @@ __device__ glm::vec3 RayHittableCollision(Raytracer::Ray ray, Raytracer::Hittabl
 
         glm::vec3 hitPoint = (ray.dir * hi.hitDistance) + ray.origin;
 
-        ray.origin = hitPoint + (hi.normal *.001f);
-        ray.dir = ray.determineScatterDirection(hi, state);
+
+        glm::vec4 scatterDirWithFlag = ray.determineScatterDirection(hi, state);
+        glm::vec3 rawScatterDir = scatterDirWithFlag;
+        float refractionFlag = scatterDirWithFlag.w;
+
+        ray.dir = rawScatterDir;
+
+        glm::vec3 nudgeDir = refractionFlag > 0 ? ray.dir : hi.normal;
+        ray.origin = hitPoint + (nudgeDir *.001f);
 
         hi = ray.RayIntersectShapes(hittables, numHittables);
 

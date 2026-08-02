@@ -51,16 +51,27 @@ sunHit.mat = {
 
 
 Raytracer::Sphere glassBall = Raytracer::Sphere{
-    .radius = 10.0f, 
-    .position = glm::vec3(0.0f, 0.0f, 0.0f),
+    .radius = 20.0f, 
+    .position = glm::vec3(15.0f, 30.0f, -40.0f),
 };
 
 Raytracer::Hittable glassHit = Raytracer::Hittable(glassBall);
 
 glassHit.mat = {
-    .albedo = glm::vec3(0.0f),
+    .albedo = glm::vec3(1.0f),
     .transmission = 1.0f,
     .IOR = 1.5,
+};
+
+Raytracer::Sphere behindBall = Raytracer::Sphere{
+    .radius = 30.0f, 
+    .position = glm::vec3(0.0f, 30.0f, 20.0f),
+};
+
+Raytracer::Hittable behindHit = Raytracer::Hittable(behindBall);
+
+behindHit.mat = {
+    .albedo = glm::vec3(0.0, 0.0f, 1.0f),
 };
 
 
@@ -68,6 +79,7 @@ std::vector<std::shared_ptr<Raytracer::Hittable>> shapeList;
 
 shapeList.push_back(std::make_shared<Raytracer::Hittable>(groundHit));
 shapeList.push_back(std::make_shared<Raytracer::Hittable>(sunHit));
+shapeList.push_back(std::make_shared<Raytracer::Hittable>(behindHit));
 shapeList.push_back(std::make_shared<Raytracer::Hittable>(glassHit));
 
 

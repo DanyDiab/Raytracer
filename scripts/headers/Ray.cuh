@@ -3,7 +3,7 @@
 #include "HitRecord.hpp"
 #include <curand_kernel.h>
 #include <glm/geometric.hpp>
-#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
 #include "CameraRayGenerationInfo.hpp"
 
 
@@ -26,7 +26,7 @@ namespace Raytracer{
             this->dir = dir / mag;
         }
 
-        __device__ glm::vec3 determineScatterDirection(Raytracer::HitRecord record, curandState_t* state);
+        __device__ glm::vec4 determineScatterDirection(Raytracer::HitRecord record, curandState_t* state);
 
         __device__ Raytracer::HitRecord RayIntersectShapes(Raytracer::Hittable* hittables, const int numHittables);
     };

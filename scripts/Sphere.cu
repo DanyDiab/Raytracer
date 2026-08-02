@@ -1,3 +1,4 @@
+#include <cmath>
 #include <cuda_runtime.h>
 #include <cstdio>
 
@@ -29,10 +30,22 @@ __device__ float SphereRayCollide(const Raytracer::Sphere sphere, const Raytrace
         return -1.0f;
     }
 
-    float t = (-b - ::sqrt(discriminant)) / (2.0f * a);
+    float tMin = 0.001f;
+
+    float sqrtdiscriminant = ::sqrt(discriminant);
     
-    if (t < 0.0f) {
-        return -1.0f;
+    // check 1st intersection
+    float t1 = (-b - sqrtdiscriminant) / (2.0f * a);
+    if (t1 >= tMin) {
+        return t1;
     }
-    return t;
+
+    // check 2nd intersection
+    float t2 = (-b + sqrtdiscriminant) / (2.0f * a);
+    if (t2 >= tMin) {
+        return t2;
+    }
+    
+    return -1.0f;
+
 }

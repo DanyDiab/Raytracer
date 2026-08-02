@@ -9,6 +9,7 @@
 #include "headers/CameraRayGenerationInfo.hpp"
 #include "headers/Material.hpp"
 #include "headers/PRNG.cuh"
+#include "headers/PrintHelper.cuh"
 
 
 __device__ Raytracer::HitRecord Raytracer::Ray::RayIntersectShapes(Raytracer::Hittable* hittables, const int numHittables){
@@ -91,7 +92,12 @@ __device__ Raytracer::Ray Raytracer::generateRayWithDeviation(CameraRayGeneratio
     return ray;
 }
 
-__device__ glm::vec3 Raytracer::Ray::determineScatterDirection(Raytracer::HitRecord record, curandState_t* state){
+// first 3 components = dir
+// last component is a flag that indicates if it was a refraction
+// if last component > 0 = refraction happened
+// else no refraction
+// flag is used to determine which way to nudge the origin of the new ray
+__device__ glm::vec4 Raytracer::Ray::determineScatterDirection(Raytracer::HitRecord record, curandState_t* state){
     Material mat = record.mat;
 
     float metallic = mat.metallic;
@@ -105,7 +111,8 @@ __device__ glm::vec3 Raytracer::Ray::determineScatterDirection(Raytracer::HitRec
         float IOR = mat.IOR;
         
         float dir = glm::dot(this->dir, record.normal);
-
+        
+        glm::vec3 normal = record.normal;
         // entering, assuming from AIR
         float etaDiff;
         if(dir < 0){
@@ -113,24 +120,29 @@ __device__ glm::vec3 Raytracer::Ray::determineScatterDirection(Raytracer::HitRec
         }
         // exiting (once again assuming air)
         else{
+            normal = -normal;
             etaDiff = mat.IOR;
         }
 
-        float angleOfIncidence = glm::dot(-this->dir, record.normal);
+        float angleOfIncidence = glm::min(glm::dot(-this->dir, normal), 1.0f);
         
-        glm::vec3 perp = etaDiff * (this->dir + angleOfIncidence * record.normal);
+        glm::vec3 perp = etaDiff * (this->dir + angleOfIncidence * normal);
 
         // check total internal reflection
         float k = 1.0f - glm::dot(perp,perp);
         if(k < 0.0f){
             // must reflect
-            return this->dir - (2 * glm::dot(this->dir, record.normal) * record.normal);
+            glm::vec3 newDir = this->dir - (2 * glm::dot(this->dir, normal) * normal);
+            return glm::vec4(newDir,-1.0);
         }
 
-        glm::vec3 parallel = -glm::sqrt(k) * record.normal;
+        glm::vec3 parallel = -glm::sqrt(glm::abs(k)) * normal;
 
         glm::vec3 refractedDir = parallel + perp;
-        return glm::normalize(refractedDir);
+
+        glm::vec4 dirWithFlag = glm::vec4(glm::normalize(refractedDir), 1.0);
+
+        return dirWithFlag;
     }
 
     bool metallicScatter = randT < metallic;
@@ -149,5 +161,7 @@ __device__ glm::vec3 Raytracer::Ray::determineScatterDirection(Raytracer::HitRec
         dir = record.normal + PRNG::randomUnitVecSameHemisphere(record.normal, state);
     }
 
-    return glm::normalize(dir);
+    return glm::vec4(glm::normalize(dir), -1.0f);
 }
+
+
