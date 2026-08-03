@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <glm/common.hpp>
 #include <glm/exponential.hpp>
 #include <glm/ext/quaternion_geometric.hpp>
 #include <glm/geometric.hpp>
@@ -92,6 +93,84 @@ __device__ Raytracer::Ray Raytracer::generateRayWithDeviation(CameraRayGeneratio
     return ray;
 }
 
+
+__device__ glm::vec3 diffuseScatterDir(glm::vec3 normal, curandState_t* state){
+    return  normal + PRNG::randomUnitVecSameHemisphere(normal, state);
+}
+
+__device__ glm::vec3 reflect(glm::vec3 incidentAngle, glm::vec3 normal){
+    // subtract height twice and translate
+
+    return incidentAngle - (2 * glm::dot(incidentAngle, normal) * normal);
+}
+
+
+__device__ glm::vec3 metallicScatterDir(glm::vec3 incidentAngle, glm::vec3 normal, float roughness, curandState_t* state){
+    glm::vec3 reflectDir = reflect(incidentAngle, normal);
+    // add rand scaled by roughness
+    glm::vec3 fuzz = PRNG::randomUnitVec(state) * roughness;
+    glm::vec3 dir = reflectDir + fuzz;
+
+    return dir;
+}
+
+__device__ float shlickReflectance(float IOR, float cos){
+    
+     
+    float clampedCos = glm::clamp(cos, 0.0f, 1.0f);
+    float r0 = (1 - IOR) / (1 + IOR);
+
+    float r = r0 * r0;
+
+    return r + (1-r) * glm::pow(1 - clampedCos, 5);
+}
+
+// IOR = index of refraction
+// flag indicaets if refraction was allowed or not
+__device__ glm::vec4 dielctricScatterDir(float IOR, glm::vec3 incidentAngle, glm::vec3 normal, curandState_t* state){
+        
+    float rawCos = glm::dot(incidentAngle, normal);
+
+    glm::vec3 correctedNormal = normal;
+    float correctedCos;
+
+    // entering, assuming from AIR
+    float etaDiff;
+    if(rawCos < 0){
+        etaDiff = 1.0f/IOR;
+        correctedCos = -rawCos;
+    }
+    // exiting (once again assuming air)
+    else{
+        correctedNormal = -normal;
+        etaDiff = IOR;
+        correctedCos = rawCos;
+    }
+
+    float angleOfIncidence = glm::min(glm::dot(-incidentAngle, correctedNormal), 1.0f);
+    
+    glm::vec3 perp = etaDiff * (incidentAngle + angleOfIncidence * correctedNormal);
+
+    // check total internal reflection
+    float k = 1.0f - glm::dot(perp,perp);
+
+
+    bool shouldReflect = k < 0.0f ? true : shlickReflectance(etaDiff, correctedCos) > PRNG::randFloat(state);
+    if(shouldReflect){
+        // must reflect
+        glm::vec3 newDir = reflect(incidentAngle, correctedNormal);
+        return glm::vec4(newDir,-1.0);
+    }
+
+    glm::vec3 parallel = -glm::sqrt(glm::abs(k)) * correctedNormal;
+
+    glm::vec3 refractedDir = parallel + perp;
+
+    glm::vec4 refractWithFlag = glm::vec4(refractedDir, 1.0);
+
+    return refractWithFlag;
+}
+
 // first 3 components = dir
 // last component is a flag that indicates if it was a refraction
 // if last component > 0 = refraction happened
@@ -109,59 +188,23 @@ __device__ glm::vec4 Raytracer::Ray::determineScatterDirection(Raytracer::HitRec
     if(randT < transmission){
         // dielectric
         float IOR = mat.IOR;
-        
-        float dir = glm::dot(this->dir, record.normal);
-        
-        glm::vec3 normal = record.normal;
-        // entering, assuming from AIR
-        float etaDiff;
-        if(dir < 0){
-            etaDiff = 1.0f/IOR;
-        }
-        // exiting (once again assuming air)
-        else{
-            normal = -normal;
-            etaDiff = mat.IOR;
-        }
-
-        float angleOfIncidence = glm::min(glm::dot(-this->dir, normal), 1.0f);
-        
-        glm::vec3 perp = etaDiff * (this->dir + angleOfIncidence * normal);
-
-        // check total internal reflection
-        float k = 1.0f - glm::dot(perp,perp);
-        if(k < 0.0f){
-            // must reflect
-            glm::vec3 newDir = this->dir - (2 * glm::dot(this->dir, normal) * normal);
-            return glm::vec4(newDir,-1.0);
-        }
-
-        glm::vec3 parallel = -glm::sqrt(glm::abs(k)) * normal;
-
-        glm::vec3 refractedDir = parallel + perp;
-
-        glm::vec4 dirWithFlag = glm::vec4(glm::normalize(refractedDir), 1.0);
-
-        return dirWithFlag;
+        glm::vec4 refractionWithFlag = dielctricScatterDir(IOR, this->dir, record.normal, state);
+        return refractionWithFlag;
     }
 
     bool metallicScatter = randT < metallic;
 
-    glm::vec3 dir;
     if(metallicScatter){
         float roughness = mat.roughness;
-        // subtract height twice and translate
-
-        glm::vec3 reflect = this->dir - (2 * glm::dot(this->dir, record.normal) * record.normal);
-        // add rand scaled by roughness
-        glm::vec3 fuzz = PRNG::randomUnitVec(state) * roughness;
-        dir = reflect + fuzz;
+        glm::vec3 dir = metallicScatterDir(this->dir,record.normal,roughness,state);
+        return glm::vec4(glm::normalize(dir), -1.0f);
     }
     else{
-        dir = record.normal + PRNG::randomUnitVecSameHemisphere(record.normal, state);
+        glm::vec3 dir = diffuseScatterDir(record.normal, state);
+        return glm::vec4(glm::normalize(dir), -1.0f);
     }
-
-    return glm::vec4(glm::normalize(dir), -1.0f);
 }
+
+
 
 
