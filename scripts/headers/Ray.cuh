@@ -26,7 +26,7 @@ namespace Raytracer{
             this->dir = dir / mag;
         }
 
-        __device__ glm::vec4 determineScatterDirection(Raytracer::HitRecord record, curandState_t* state);
+        __device__ glm::vec3 determineScatterDirection(Raytracer::HitRecord record, curandState_t* state);
 
         __device__ Raytracer::HitRecord RayIntersectShapes(Raytracer::Hittable* hittables, const int numHittables);
     };

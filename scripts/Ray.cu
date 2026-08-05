@@ -154,7 +154,6 @@ __device__ glm::vec4 dielctricScatterDir(float IOR, glm::vec3 incidentAngle, glm
     // check total internal reflection
     float k = 1.0f - glm::dot(perp,perp);
 
-
     bool shouldReflect = k < 0.0f ? true : shlickReflectance(etaDiff, correctedCos) > PRNG::randFloat(state);
     if(shouldReflect){
         // must reflect
@@ -171,12 +170,7 @@ __device__ glm::vec4 dielctricScatterDir(float IOR, glm::vec3 incidentAngle, glm
     return refractWithFlag;
 }
 
-// first 3 components = dir
-// last component is a flag that indicates if it was a refraction
-// if last component > 0 = refraction happened
-// else no refraction
-// flag is used to determine which way to nudge the origin of the new ray
-__device__ glm::vec4 Raytracer::Ray::determineScatterDirection(Raytracer::HitRecord record, curandState_t* state){
+__device__ glm::vec3 Raytracer::Ray::determineScatterDirection(Raytracer::HitRecord record, curandState_t* state){
     Material mat = record.mat;
 
     float metallic = mat.metallic;
@@ -188,21 +182,24 @@ __device__ glm::vec4 Raytracer::Ray::determineScatterDirection(Raytracer::HitRec
     if(randT < transmission){
         // dielectric
         float IOR = mat.IOR;
-        glm::vec4 refractionWithFlag = dielctricScatterDir(IOR, this->dir, record.normal, state);
-        return refractionWithFlag;
+        glm::vec3 dieletricScatter = dielctricScatterDir(IOR, this->dir, record.normal, state);
+        return dieletricScatter;
     }
 
     bool metallicScatter = randT < metallic;
 
+    glm::vec3 dir;
+
     if(metallicScatter){
         float roughness = mat.roughness;
-        glm::vec3 dir = metallicScatterDir(this->dir,record.normal,roughness,state);
-        return glm::vec4(glm::normalize(dir), -1.0f);
+        dir = metallicScatterDir(this->dir,record.normal,roughness,state);
     }
+    // diffuse
     else{
-        glm::vec3 dir = diffuseScatterDir(record.normal, state);
-        return glm::vec4(glm::normalize(dir), -1.0f);
+        dir = diffuseScatterDir(record.normal, state);
     }
+
+    return dir;
 }
 
 
