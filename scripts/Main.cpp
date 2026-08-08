@@ -1,15 +1,14 @@
-#include "./headers/Window.hpp"
+#include "headers/Util/Window.hpp"
 
-#include "headers/Camera.hpp"
-#include "headers/Hittable.cuh"
-#include "headers/Ray.cuh"
-#include "headers/Sphere.cuh"
+#include "headers/Hittables/Hittable.cuh"
+#include "headers/Camera//Camera.hpp"
+#include "headers/RayHits//Ray.cuh"
+#include "headers/Hittables/Sphere.cuh"
 #include <glm/ext/vector_float3.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/trigonometric.hpp>
 #include <iostream>
 #include <memory>
-#include <system_error>
 #include <vector>
 
 int main(int argc, char** argv){
