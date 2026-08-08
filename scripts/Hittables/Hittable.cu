@@ -5,11 +5,18 @@
 #include "../headers/Hittables/Hittable.cuh"
 #include "../headers/RayHits/Ray.cuh"
 #include "../headers/Hittables/Sphere.cuh"
+#include "../headers/Hittables/Triangle.cuh"
+
 
 namespace Raytracer {
     __host__ __device__ Hittable::Hittable(Sphere sphere){
         shapeType = SHAPE_SPHERE;
-        this->sphere = sphere;
+        this->shape.sphere = sphere;
+    }
+
+    __host__ __device__ Hittable::Hittable(Triangle triangle){
+        shapeType = SHAPE_TRIANGLE;
+        this->shape.triangle = triangle;
     }
 
     // __host__ __device__ Hittable::Hittable()
@@ -21,17 +28,32 @@ namespace Raytracer {
             .normal = glm::vec3(0),
         };
 
-        if(shapeType == SHAPE_SPHERE){
-            float distance = SphereRayCollide(sphere, ray);
-            if(distance == -1.0f){
-                return hi;
+        float distance;
+        glm::vec3 normal;
+        switch(shapeType){
+            case(SHAPE_SPHERE):{
+                distance = SphereRayCollide(shape.sphere, ray);
+                normal = SphereRayNormal(shape.sphere, ray, distance);
+
+                break;
             }
-            glm::vec3 normal = SphereRayNormal(sphere, ray, distance);
-            hi.hitDistance = distance;
-            hi.normal = normal;
+            case(SHAPE_TRIANGLE):{
+                distance = TriangleRayCollide(shape.triangle, ray);
+                normal = TriangleNormal(shape.triangle);
+                break;
+            }
+            default:{
+                printf("Shape Type Not Recognized | how did we get here?!?!??!?!?!??!?!?????!!!????");
+                break;
+            }
         }
-        else{
+
+        if(distance == -1.0f){
+            return hi;
         }
+
+        hi.hitDistance = distance;
+        hi.normal = normal;
 
         return hi;
     }

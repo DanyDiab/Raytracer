@@ -25,6 +25,20 @@ int main(int argc, char** argv){
     
 Camera cam(vi, glm::vec3(0.0f, 60.0f, -150.0f), glm::quat(glm::vec3(glm::radians(15.0f), 0.0f, 0.0f)));
 
+
+Raytracer::Triangle triangle = Raytracer::Triangle{
+    .p1 = glm::vec3(0),
+    .p2 = glm::vec3(100,100,0),
+    .p3 = glm::vec3(-100,100, 0)
+};
+
+Raytracer::Hittable triHit = Raytracer::Hittable(triangle);
+
+triHit.mat = {
+    .albedo = glm::vec3(1,0,0)
+};
+
+
 Raytracer::Sphere ground = Raytracer::Sphere{
     .radius = 10000.0f,
     .position = glm::vec3(0.0f, -10010.0f, 0.0f),
@@ -80,6 +94,7 @@ shapeList.push_back(std::make_shared<Raytracer::Hittable>(groundHit));
 shapeList.push_back(std::make_shared<Raytracer::Hittable>(sunHit));
 shapeList.push_back(std::make_shared<Raytracer::Hittable>(behindHit));
 shapeList.push_back(std::make_shared<Raytracer::Hittable>(glassHit));
+shapeList.push_back(std::make_shared<Raytracer::Hittable>(triHit));
 
 
 

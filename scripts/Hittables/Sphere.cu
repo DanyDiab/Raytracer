@@ -3,7 +3,6 @@
 #include <cstdio>
 
 #include "../headers/RayHits/Ray.cuh"
-#include "../headers/Util/Transform.hpp"
 #include "../headers/Hittables/Sphere.cuh"
 #include <glm/geometric.hpp>
 #include <glm/vec3.hpp>

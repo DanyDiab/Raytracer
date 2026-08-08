@@ -26,6 +26,8 @@ add_executable(Raytracer
     "${CAMERA_RAYS_DIR}/RayAveraging.cu"
     "${HITTABLES_DIR}/Hittable.cu"
     "${HITTABLES_DIR}/Sphere.cu"
+    "${HITTABLES_DIR}/Triangle.cu"
+
 )
 set_target_properties(Raytracer PROPERTIES 
     CUDA_SEPARATE_COMPILATION ON
