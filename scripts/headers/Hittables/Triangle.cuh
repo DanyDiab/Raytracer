@@ -14,4 +14,4 @@ namespace Raytracer{
 
 __device__ float TriangleRayCollide(const Raytracer::Triangle triangle, const Raytracer::Ray ray);
 
-__device__ glm::vec3 TriangleNormal(const Raytracer::Triangle triangle);
+__device__ glm::vec3 TriangleRayNormal(const Raytracer::Triangle triangle, Raytracer::Ray ray);

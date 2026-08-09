@@ -4,6 +4,8 @@
 #include <glm/geometric.hpp>
 #include <stdio.h>
 
+
+
 __device__ glm::vec3 TriangleNormal(const Raytracer::Triangle triangle){
     glm::vec3 AB = triangle.p2 - triangle.p1;
     glm::vec3 AC = triangle.p3 - triangle.p1;
@@ -11,7 +13,17 @@ __device__ glm::vec3 TriangleNormal(const Raytracer::Triangle triangle){
     glm::vec3 ortho = glm::cross(AB, AC);
  
     return glm::normalize(ortho);
-};
+}
+
+__device__ glm::vec3 TriangleRayNormal(const Raytracer::Triangle triangle, Raytracer::Ray ray){
+    glm::vec3 normal = TriangleNormal(triangle);
+
+    if(glm::dot(normal, ray.dir) > 0.0f){
+        normal = -normal;
+    }
+
+    return normal;
+}
 
 // returns colision distance with plane with the ray
 __device__ float PlaneRayCollide(const Raytracer::Triangle triangle, const Raytracer::Ray ray, glm::vec3 normal){
@@ -22,46 +34,42 @@ __device__ float PlaneRayCollide(const Raytracer::Triangle triangle, const Raytr
         return -1;
     }
 
-    float numerator = glm::dot(triangle.p1, normal) * glm::dot(ray.origin, normal);
+    float numerator = glm::dot(triangle.p1, normal) - glm::dot(ray.origin, normal);
 
     float t = numerator / denom;
 
     return t;
 }
 
-__device__ float getTriangleArea(glm::vec3 p1, glm::vec3 p2, glm::vec3 p3) {
-    glm::vec3 s1 = p2 - p1;
-    glm::vec3 s2 = p3 - p1;
-    return 0.5f * glm::length(glm::cross(s1, s2));
-}
 
 __device__ bool pointInTriangle(const Raytracer::Triangle triangle, glm::vec3 point){
     // get barycentric coordinates
-    float totalArea = getTriangleArea(triangle.p1, triangle.p2, triangle.p3);
 
-    float tAArea = getTriangleArea(point, triangle.p2, triangle.p3);
-    float tBArea = getTriangleArea(triangle.p1, point, triangle.p3);
-    float tCArea = getTriangleArea(triangle.p1, triangle.p2, point);
+    glm::vec3 triNormal = TriangleNormal(triangle);
 
-    float bA = tAArea / totalArea;
-    float bB = tBArea / totalArea;
-    float bC = tCArea / totalArea;
+    glm::vec3 AB = triangle.p2 - triangle.p1;
+    glm::vec3 AC = triangle.p3 - triangle.p1;
 
-    float totalContirub = bA + bB + bC;
+    glm::vec3 ABNormal = glm::cross(triNormal, AB);
+    glm::vec3 ACNormal = glm::cross(AC, triNormal);
 
-    printf("%F\n", totalContirub);
-    bool valid = glm::abs(totalContirub - 1.0) <= .0001f && bA >= 0.0f && bB >= 0.0f && bC >= 0.0f;
+
+    float bC = glm::dot(ABNormal, point - triangle.p1) / glm::dot(ABNormal, triangle.p3 - triangle.p1);
+    float bB = glm::dot(ACNormal, point - triangle.p1) / glm::dot(ACNormal, triangle.p2 - triangle.p1);
+    float bA = 1.0f - bB - bC;
+
+    bool valid = bA >= 0.0f && bB >= 0.0f && bC >= 0.0f;
 
     return valid;
 }
 
 
 __device__ float TriangleRayCollide(const Raytracer::Triangle triangle, const Raytracer::Ray ray){
-    glm::vec3 normal = TriangleNormal(triangle);
+    glm::vec3 normal = TriangleRayNormal(triangle, ray);
 
     float planeHitDistance = PlaneRayCollide(triangle, ray, normal);
 
-    if(planeHitDistance == -1.0f){
+    if(planeHitDistance <= 0.0f){
         return -1.0f;
     }
 

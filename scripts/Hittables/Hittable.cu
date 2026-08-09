@@ -39,7 +39,7 @@ namespace Raytracer {
             }
             case(SHAPE_TRIANGLE):{
                 distance = TriangleRayCollide(shape.triangle, ray);
-                normal = TriangleNormal(shape.triangle);
+                normal = TriangleRayNormal(shape.triangle, ray);
                 break;
             }
             default:{

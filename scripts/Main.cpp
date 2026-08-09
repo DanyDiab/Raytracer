@@ -23,19 +23,22 @@ int main(int argc, char** argv){
         .height = 540
     };
     
+// Pitch DOWN towards -Y
 Camera cam(vi, glm::vec3(0.0f, 60.0f, -150.0f), glm::quat(glm::vec3(glm::radians(15.0f), 0.0f, 0.0f)));
 
 
 Raytracer::Triangle triangle = Raytracer::Triangle{
-    .p1 = glm::vec3(0),
-    .p2 = glm::vec3(100,100,0),
-    .p3 = glm::vec3(-100,100, 0)
+    .p1 = glm::vec3(-80.0f,  20.0f, -30.0f),
+    .p2 = glm::vec3( -20.0f,  20.0f, 30.0f),
+    .p3 = glm::vec3(  -50.0f,  60.0f, 0.0f)
 };
 
 Raytracer::Hittable triHit = Raytracer::Hittable(triangle);
 
 triHit.mat = {
-    .albedo = glm::vec3(1,0,0)
+    .albedo = glm::vec3(.8,.8,.8),
+    .metallic = .9f
+    
 };
 
 
