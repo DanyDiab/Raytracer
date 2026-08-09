@@ -35,23 +35,13 @@ __device__ float getTriangleArea(glm::vec3 p1, glm::vec3 p2, glm::vec3 p3) {
     return 0.5f * glm::length(glm::cross(s1, s2));
 }
 
-__device__ float TriangleRayCollide(const Raytracer::Triangle triangle, const Raytracer::Ray ray){
-    glm::vec3 normal = TriangleNormal(triangle);
-
-    float planeHitDistance = PlaneRayCollide(triangle, ray, normal);
-
+__device__ bool pointInTriangle(const Raytracer::Triangle triangle, glm::vec3 point){
     // get barycentric coordinates
-    if(planeHitDistance == -1.0f){
-        return -1.0f;
-    }
-
-    glm::vec3 planeHitPoint = ray.origin + ray.dir * planeHitDistance;
-
     float totalArea = getTriangleArea(triangle.p1, triangle.p2, triangle.p3);
 
-    float tAArea = getTriangleArea(planeHitPoint, triangle.p2, triangle.p3);
-    float tBArea = getTriangleArea(triangle.p1, planeHitPoint, triangle.p3);
-    float tCArea = getTriangleArea(triangle.p1, triangle.p2, planeHitPoint);
+    float tAArea = getTriangleArea(point, triangle.p2, triangle.p3);
+    float tBArea = getTriangleArea(triangle.p1, point, triangle.p3);
+    float tCArea = getTriangleArea(triangle.p1, triangle.p2, point);
 
     float bA = tAArea / totalArea;
     float bB = tBArea / totalArea;
@@ -60,11 +50,28 @@ __device__ float TriangleRayCollide(const Raytracer::Triangle triangle, const Ra
     float totalContirub = bA + bB + bC;
 
     printf("%F\n", totalContirub);
-    if(glm::abs(totalContirub - 1.0) >= .01f || bA < 0.0f || bB < 0.0f || bC < 0.0f){
-        return -1;
+    bool valid = glm::abs(totalContirub - 1.0) <= .0001f && bA >= 0.0f && bB >= 0.0f && bC >= 0.0f;
+
+    return valid;
+}
+
+
+__device__ float TriangleRayCollide(const Raytracer::Triangle triangle, const Raytracer::Ray ray){
+    glm::vec3 normal = TriangleNormal(triangle);
+
+    float planeHitDistance = PlaneRayCollide(triangle, ray, normal);
+
+    if(planeHitDistance == -1.0f){
+        return -1.0f;
     }
 
-    return planeHitDistance;
+    glm::vec3 planeHitPoint = ray.origin + ray.dir * planeHitDistance;
+
+    bool inTriangle = pointInTriangle(triangle, planeHitPoint);
+
+    float dist = inTriangle ? planeHitDistance : -1;
+
+    return dist;
 }
 
 
