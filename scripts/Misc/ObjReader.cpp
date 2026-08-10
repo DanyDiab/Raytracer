@@ -5,7 +5,7 @@
 #include <fstream>
 #include <sstream>
 
-glm::vec3 readInVertex(const std::string& text) {
+glm::vec3 readInLine(const std::string& text) {
     std::stringstream ss(text);
     std::string prefix;
     glm::vec3 vec;
@@ -30,22 +30,30 @@ std::vector<Raytracer::Triangle> ReadInObj(std::string filePath){
     std::string text;
 
     std::vector<glm::vec3> vertices;
-    while (getline (objFile, text)){
-        // vertex
-        const char firstChar = text.at(0); 
-        // vertex
 
+    while (getline (objFile, text)){
+        
+        const char firstChar = text.at(0); 
+
+        // vertex
         switch(firstChar){
             case(vertex):{
-                glm::vec3 vertex = readInVertex(text);
+                glm::vec3 vertex = readInLine(text);
                 vertices.push_back(vertex);
                 break;
             }
             case(face):{
+                glm::vec3 faceIndices = readInLine(text);
+                Raytracer::Triangle triangle;
+
+                // account for 1 indexed file format
+                triangle.p1 = vertices.at(faceIndices.x - 1);
+                triangle.p2 = vertices.at(faceIndices.y - 1);
+                triangle.p3 = vertices.at(faceIndices.z - 1);
                 
+                triangles.push_back(triangle);
             }
         }
-        std::cout << text << "\n";
     }
 
     objFile.close();

@@ -1,8 +1,9 @@
+#include "headers/Hittables/Triangle.cuh"
 #include "headers/Util/Window.hpp"
 
 #include "headers/Hittables/Hittable.cuh"
-#include "headers/Camera//Camera.hpp"
-#include "headers/RayHits//Ray.cuh"
+#include "headers/Camera/Camera.hpp"
+#include "headers/RayHits/Ray.cuh"
 #include "headers/Hittables/Sphere.cuh"
 #include "headers/Util/ObjReader.hpp"
 #include <glm/ext/vector_float3.hpp>
@@ -24,39 +25,9 @@ int main(int argc, char** argv){
         .height = 540
     };
     
-    Camera cam(vi, glm::vec3(0.0f, 60.0f, -150.0f), glm::quat(glm::vec3(glm::radians(15.0f), 0.0f, 0.0f)));
+        Camera cam(vi, glm::vec3(0.0f, 60.0f, -250.0f), glm::quat(glm::vec3(glm::radians(-8.0f), 0.0f, 0.0f)));
 
-
-    Raytracer::Triangle triangle = Raytracer::Triangle{
-        .p1 = glm::vec3(-80.0f,  20.0f, -30.0f),
-        .p2 = glm::vec3( -20.0f,  20.0f, 30.0f),
-        .p3 = glm::vec3(  -50.0f,  60.0f, 0.0f)
-    };
-
-    Raytracer::Hittable triHit = Raytracer::Hittable(triangle);
-
-    triHit.mat = {
-        .albedo = glm::vec3(.8,.8,.8),
-        .transmission = 1.0f,
-        .IOR = 1.5,
-        
-    };
-
-
-    Raytracer::Triangle triangle2 = Raytracer::Triangle{
-        .p1 = glm::vec3(-70.0f,  20.0f, 30.0f),
-        .p2 = glm::vec3( -20.0f,  20.0f, 60.0f),
-        .p3 = glm::vec3(  -50.0f,  60.0f, 0.0f)
-    };
-
-    Raytracer::Hittable tri2Hit = Raytracer::Hittable(triangle2);
-
-    tri2Hit.mat = {
-        .albedo = glm::vec3(1.0,0.0f,1.0f),
-    };
-
-
-
+    
     Raytracer::Sphere ground = Raytracer::Sphere{
         .radius = 10000.0f,
         .position = glm::vec3(0.0f, -10010.0f, 0.0f),
@@ -69,6 +40,8 @@ int main(int argc, char** argv){
         .roughness = 0.8f
     };
 
+
+
     Raytracer::Sphere sun = Raytracer::Sphere{
         .radius = 5000.0f, 
         .position = glm::vec3(0.0f, 4000.0f, -5000.0f),
@@ -80,46 +53,32 @@ int main(int argc, char** argv){
         .emittedColor = glm::vec3(1.0f)
     };
 
-
-    Raytracer::Sphere glassBall = Raytracer::Sphere{
-        .radius = 20.0f, 
-        .position = glm::vec3(15.0f, 30.0f, -40.0f),
-    };
-
-    Raytracer::Hittable glassHit = Raytracer::Hittable(glassBall);
-
-    glassHit.mat = {
-        .albedo = glm::vec3(1.0f),
-        .transmission = 1.0f,
-        .IOR = 1.5,
-    };
-
-    Raytracer::Sphere behindBall = Raytracer::Sphere{
-        .radius = 30.0f, 
-        .position = glm::vec3(0.0f, 30.0f, 20.0f),
-    };
-
-    Raytracer::Hittable behindHit = Raytracer::Hittable(behindBall);
-
-    behindHit.mat = {
-        .albedo = glm::vec3(0.0, 0.0f, 1.0f),
-    };
+    std::vector<Raytracer::Triangle> mesh = ReadInObj("./models/bunny.obj");
 
 
     std::vector<std::shared_ptr<Raytracer::Hittable>> shapeList;
 
+    float scale = 1000.0f;
+
+    for(Raytracer::Triangle tri : mesh){
+
+        tri.p1 *= scale;
+        tri.p2 *= scale;
+        tri.p3 *= scale;
+
+        Raytracer::Hittable triHit = Raytracer::Hittable(tri);
+
+        triHit.mat = {
+            .albedo = glm::vec3(1.0f,0.0f,1.0f)
+        };
+
+        shapeList.push_back(std::make_shared<Raytracer::Hittable>(triHit));
+    }
+
     shapeList.push_back(std::make_shared<Raytracer::Hittable>(groundHit));
     shapeList.push_back(std::make_shared<Raytracer::Hittable>(sunHit));
-    shapeList.push_back(std::make_shared<Raytracer::Hittable>(behindHit));
-    shapeList.push_back(std::make_shared<Raytracer::Hittable>(glassHit));
-    shapeList.push_back(std::make_shared<Raytracer::Hittable>(triHit));
-    shapeList.push_back(std::make_shared<Raytracer::Hittable>(tri2Hit));
 
-
-    ReadInObj("./models/bunny.obj");
-
-
-    // cam.Render(shapeList);
+    cam.Render(shapeList);
 
     while(window.updateWindow()){
         break;

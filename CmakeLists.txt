@@ -27,6 +27,8 @@ add_executable(Raytracer
     "${HITTABLES_DIR}/Hittable.cu"
     "${HITTABLES_DIR}/Sphere.cu"
     "${HITTABLES_DIR}/Triangle.cu"
+    "${MISC_DIR}/ObjReader.cpp"
+
 
 )
 set_target_properties(Raytracer PROPERTIES 
