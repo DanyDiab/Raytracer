@@ -19,17 +19,20 @@ set(HEADERS_DIR "${SCRIPTSDIR}/headers")
 
 add_executable(Raytracer
     "${SCRIPTSDIR}/Main.cpp"
-    "${MISC_DIR}/Window.cpp"
-    "${MISC_DIR}/PRNG.cu"
+
     "${CAMERA_RAYS_DIR}/Camera.cu"
     "${CAMERA_RAYS_DIR}/Ray.cu"
     "${CAMERA_RAYS_DIR}/RayAveraging.cu"
+
     "${HITTABLES_DIR}/Hittable.cu"
     "${HITTABLES_DIR}/Sphere.cu"
     "${HITTABLES_DIR}/Triangle.cu"
+    "${HITTABLES_DIR}/Mesh.cpp"
+    
+    "${MISC_DIR}/PRNG.cu"
+    "${MISC_DIR}/Window.cpp"
     "${MISC_DIR}/ObjReader.cpp"
-
-
+    "${MISC_DIR}/PpmWriter.cpp"
 )
 set_target_properties(Raytracer PROPERTIES 
     CUDA_SEPARATE_COMPILATION ON

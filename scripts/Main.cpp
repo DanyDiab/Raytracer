@@ -1,10 +1,13 @@
 #include "headers/Hittables/Triangle.cuh"
+#include "headers/Util/PpmWriter.hpp"
+#include "headers/Util/Transform.hpp"
 #include "headers/Util/Window.hpp"
-
 #include "headers/Hittables/Hittable.cuh"
 #include "headers/Camera/Camera.hpp"
 #include "headers/RayHits/Ray.cuh"
 #include "headers/Hittables/Sphere.cuh"
+#include "headers/Hittables/Mesh.hpp"
+
 #include "headers/Util/ObjReader.hpp"
 #include <glm/ext/vector_float3.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -53,32 +56,37 @@ int main(int argc, char** argv){
         .emittedColor = glm::vec3(1.0f)
     };
 
-    std::vector<Raytracer::Triangle> mesh = ReadInObj("./models/bunny.obj");
 
 
-    std::vector<std::shared_ptr<Raytracer::Hittable>> shapeList;
+    std::vector<Raytracer::Hittable> shapeList;
 
-    float scale = 1000.0f;
 
-    for(Raytracer::Triangle tri : mesh){
+    shapeList.push_back(groundHit);
+    shapeList.push_back(sunHit);
 
-        tri.p1 *= scale;
-        tri.p2 *= scale;
-        tri.p3 *= scale;
+    std::vector<Raytracer::Triangle> meshTris = FileOps::ReadInObj("./models/bunny.obj");
 
-        Raytracer::Hittable triHit = Raytracer::Hittable(tri);
+    Mesh::Mesh mesh;
+    mesh.triangles = meshTris;
 
-        triHit.mat = {
-            .albedo = glm::vec3(1.0f,0.0f,1.0f)
-        };
+    Raytracer::Transform meshTrans;
 
-        shapeList.push_back(std::make_shared<Raytracer::Hittable>(triHit));
-    }
+    meshTrans.position = glm::vec3(0, 0, 0);
+    meshTrans.rotation = glm::vec3(glm::vec3(0, glm::radians(150.0f), 0));
+    meshTrans.scale = glm::vec3(1000.0f);
 
-    shapeList.push_back(std::make_shared<Raytracer::Hittable>(groundHit));
-    shapeList.push_back(std::make_shared<Raytracer::Hittable>(sunHit));
+    mesh.transform = meshTrans;
 
-    cam.Render(shapeList);
+    mesh.mat = {
+        .albedo = glm::vec3(.5f,.5f,.5f),
+        .metallic = .7f
+    };
+
+    Mesh::addMeshToScene(mesh, &shapeList);
+
+    std::vector<glm::vec3> colors = cam.Render(shapeList);
+
+    FileOps::writeColorsToPPM(colors, vi.height, vi.width, "./img.ppm");
 
     while(window.updateWindow()){
         break;

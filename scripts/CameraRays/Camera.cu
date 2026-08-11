@@ -28,8 +28,7 @@
 #include <cuda/std/cmath>
 
 constexpr int maxNumBounces = 10;
-// how big is the square for each pixel? square it and this is the number of rays per pixel
-constexpr int samples = 100;
+constexpr int samples = 10;
 
 constexpr int renderTimeSeconds = 60;
 
@@ -117,7 +116,7 @@ __global__ void RenderPass(int numRays, Raytracer::Hittable* hittables, int numH
 
 }
 
-GPUMemory initGPUMemory(const std::vector<std::shared_ptr<Raytracer::Hittable>>& hittables, int width, int height){
+GPUMemory initGPUMemory(const std::vector<Raytracer::Hittable> hittables, int width, int height){
     int numHittables = hittables.size();
     int numPixels = height * width;
     Raytracer::Hittable *localHittable;
@@ -125,7 +124,7 @@ GPUMemory initGPUMemory(const std::vector<std::shared_ptr<Raytracer::Hittable>>&
     
     for (int i = 0; i < numHittables; i++) {
         Raytracer::Hittable* dest = localHittable + i;
-        const Raytracer::Hittable* src = hittables[i].get();
+        const Raytracer::Hittable* src = &hittables[i];
         cudaMemcpy(dest, src, sizeof(Raytracer::Hittable), cudaMemcpyHostToDevice);
     }
 
@@ -168,24 +167,10 @@ void launchRenderPass(GPUMemory memory, int numHittables, int numRays, CameraRay
 
 
 
-void writeColorsToPPM(std::vector<glm::vec3> colors, int height, int width){
-    std::cout << "P3\n" << width << ' ' << height << "\n255\n";
 
-    for(int i = 0; i < colors.size(); i++){
-        glm::vec3 color = colors.at(i);
-
-        float ir = color.r * 255.9999f;
-        float ig = color.g * 255.9999f; 
-        float ib = color.b * 255.9999f;
-
-        std::cout << ir << ' ' << ig << ' ' << ib << '\n';
-    }
-    std::cout << std::flush;
-    // std::cout << std::endl;
-}
 
 // 155, 203, 242
-void Camera::Render(const std::vector<std::shared_ptr<Raytracer::Hittable>>& hittables){
+std::vector<glm::vec3> Camera::Render(const std::vector<Raytracer::Hittable> hittables){
     // glm::vec3 skyColor = glm::vec3(155 / 255.0,203 / 255.0,242 / 255.0);
     glm::vec3 skyColor = glm::vec3(0);
 
@@ -228,6 +213,5 @@ void Camera::Render(const std::vector<std::shared_ptr<Raytracer::Hittable>>& hit
     colors.resize(numRays);
     cudaMemcpy(colors.data(), GPUmemory.colors, numRays * sizeof(glm::vec3), cudaMemcpyDeviceToHost);
 
-    
-    writeColorsToPPM(colors, height, width);
+    return colors;
 }
