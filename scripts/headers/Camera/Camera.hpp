@@ -25,7 +25,7 @@ class Camera{
         std::unique_ptr<ViewportInfo> viewportInfo;
 
         glm::vec3 viewportPos;
-        std::vector<glm::vec3> Render(const std::vector<Raytracer::Hittable> objects);
+        std::vector<glm::vec3> Render(const std::vector<Raytracer::Hittable> objects, int renderingFlags);
 
     private:
         Raytracer::Transform transform;

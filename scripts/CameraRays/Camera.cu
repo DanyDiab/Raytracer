@@ -10,6 +10,7 @@
 #include "../headers/RayHits/Ray.cuh"
 #include "../headers/Camera/CameraRayGenerationInfo.hpp"
 #include "../headers/Util/RayAveraging.cuh"
+#include "../headers/Camera/RenderFlags.hpp"
 
 #include <cuda_runtime_api.h>
 #include <driver_types.h>
@@ -27,8 +28,8 @@
 #include <device_launch_parameters.h>
 #include <cuda/std/cmath>
 
-constexpr int maxNumBounces = 10;
-constexpr int samples = 10;
+constexpr int maxNumBounces = 15;
+constexpr int samples = 150;
 
 constexpr int renderTimeSeconds = 60;
 
@@ -52,7 +53,7 @@ Camera::Camera(ViewportInfo vi, glm::vec3 pos, glm::quat rot){
     viewportInfo = std::make_unique<ViewportInfo>(vi);
 }
 
-__device__ glm::vec3 RayHittableCollision(Raytracer::Ray ray, Raytracer::Hittable* hittables, int numHittables, curandState_t* state, glm::vec3 skyColor, int index){
+__device__ glm::vec3 RayHittableCollision(Raytracer::Ray ray, Raytracer::Hittable* hittables, int numHittables, curandState_t* state, glm::vec3 skyColor, int index, int renderingFlags){
     // invalid index
 
     Raytracer::HitRecord hi = ray.RayIntersectShapes(hittables, numHittables);
@@ -91,8 +92,12 @@ __device__ glm::vec3 RayHittableCollision(Raytracer::Ray ray, Raytracer::Hittabl
         }
 
         outputtedLight += hi.mat.emittedColor;
-
-        incomingLight += outputtedLight * throughput;
+        if(renderingFlags & Flags::RenderFlags::DebugNormals){
+            incomingLight = hi.normal;
+        }
+        else{
+            incomingLight += outputtedLight * throughput;
+        }
 
         throughput *= (hi.mat.albedo);
         
@@ -102,13 +107,13 @@ __device__ glm::vec3 RayHittableCollision(Raytracer::Ray ray, Raytracer::Hittabl
     return incomingLight;
 }
 
-__global__ void RenderPass(int numRays, Raytracer::Hittable* hittables, int numHittables, glm::vec3* colors, CameraRayGenerationInfo camInfo, double currTime, curandState_t* prngStates, glm::vec3 skyColor){
+__global__ void RenderPass(int numRays, Raytracer::Hittable* hittables, int numHittables, glm::vec3* colors, CameraRayGenerationInfo camInfo, double currTime, curandState_t* prngStates, glm::vec3 skyColor, int renderingFlags){
     int index = threadIdx.x + (blockDim.x * blockIdx.x);
 
     if(index < numRays){
         curandState_t prngState = prngStates[index];
         Raytracer::Ray ray = Raytracer::generateRayWithDeviation(camInfo,currTime,index, &prngState);
-        glm::vec3 color = RayHittableCollision(ray, hittables, numHittables, &prngState, skyColor, index);
+        glm::vec3 color = RayHittableCollision(ray, hittables, numHittables, &prngState, skyColor, index, renderingFlags);
         colors[index] += color;
 
 		prngStates[index] = prngState;
@@ -158,21 +163,20 @@ GPUMemory initGPUMemory(const std::vector<Raytracer::Hittable> hittables, int wi
     return memory;
 }
 
-void launchRenderPass(GPUMemory memory, int numHittables, int numRays, CameraRayGenerationInfo camInfo, double currTime, glm::vec3 skyColor){
+void launchRenderPass(GPUMemory memory, int numHittables, int numRays, CameraRayGenerationInfo camInfo, double currTime, glm::vec3 skyColor, int renderingFlags){
     int threads = 256;
     int blocks = (numRays + threads - 1) / threads;
 
-    RenderPass<<<blocks, threads>>>(numRays, memory.hittable, numHittables, memory.colors, camInfo, currTime, memory.prngStates, skyColor);
+    RenderPass<<<blocks, threads>>>(numRays, memory.hittable, numHittables, memory.colors, camInfo, currTime, memory.prngStates, skyColor, renderingFlags);
 }
 
 
 
 
 
-// 155, 203, 242
-std::vector<glm::vec3> Camera::Render(const std::vector<Raytracer::Hittable> hittables){
-    // glm::vec3 skyColor = glm::vec3(155 / 255.0,203 / 255.0,242 / 255.0);
-    glm::vec3 skyColor = glm::vec3(0);
+std::vector<glm::vec3> Camera::Render(const std::vector<Raytracer::Hittable> hittables, int flags){
+    glm::vec3 skyColor = glm::vec3(155 / 255.0,203 / 255.0,242 / 255.0);
+    // glm::vec3 skyColor = glm::vec3(0);
 
     int width = viewportInfo->width;
     int height = viewportInfo->height;
@@ -193,14 +197,14 @@ std::vector<glm::vec3> Camera::Render(const std::vector<Raytracer::Hittable> hit
     camInfo.up = transform.up();
     camInfo.width = width;
     camInfo.height = height;
-    camInfo.fov = 40.0f;
+    camInfo.fov = 60.0f;
     camInfo.projectionType = PERSPECTIVE;
     
     for(int i = 0; i < samples; i++){
         auto now = std::chrono::system_clock::now();
         auto epoch = now.time_since_epoch();
         double currTime = std::chrono::duration_cast<std::chrono::nanoseconds>(epoch).count();
-        launchRenderPass(GPUmemory, hittables.size(), numRays, camInfo, currTime, skyColor);
+        launchRenderPass(GPUmemory, hittables.size(), numRays, camInfo, currTime, skyColor, flags);
     }
 
     int threads = 256;
