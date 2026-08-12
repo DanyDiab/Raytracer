@@ -1,4 +1,6 @@
 #pragma once
+#include <algorithm>
+#include <cctype>
 #include <iostream>
 #include <map>
 #include <string>
@@ -7,12 +9,21 @@ namespace Flags{
 
     enum RenderFlags{
         DebugNormals = 1, // show normals rather than colors
-        TestFlag = 1 << 1 // not used
+        Progress = 1 << 1, // show the progress as it renders
+        Performance = 1 << 2 // log the performance metrics
     };
     
     // map string inputs to flag
-    inline std::map<std::string, RenderFlags> strToFlag = {{"-DN", RenderFlags::DebugNormals}};
-    inline std::map<RenderFlags, std::string> flagToName = {{RenderFlags::DebugNormals, "Debug Normals"}};
+    inline std::map<std::string, RenderFlags> strToFlag = {
+    {"-dn", RenderFlags::DebugNormals},
+    {"-pro", RenderFlags::Progress},
+    {"-perf", RenderFlags::Performance}
+    };
+    inline std::map<RenderFlags, std::string> flagToName = {
+    {RenderFlags::DebugNormals, "Debug Normals"},
+    {RenderFlags::Progress, "Show Progress"},
+    {RenderFlags::Performance, "Show Performance Metrics"}
+    };
 
     inline int ProcessFlags(int argc, char** argv){
         int numFlags = argc - 1;
@@ -20,7 +31,13 @@ namespace Flags{
         int renderingFlags = 0;
         for(int i = 0; i < numFlags; i++){
 
-            char* currFlag = argv[i + 1];
+            std::string currFlag = argv[i + 1];
+            
+            // convert to lower
+            std::transform(currFlag.begin(),currFlag.end(),currFlag.begin(),[](unsigned char c){
+                return std::tolower(c);
+            });
+
             auto key = Flags::strToFlag.find(currFlag);
 
             if(key == Flags::strToFlag.end()) continue;
