@@ -12,6 +12,8 @@
 #include "../headers/Util/RayAveraging.cuh"
 #include "../headers/Camera/RenderFlags.hpp"
 #include "../headers/Util/GPUTimer.cuh"
+#include "../headers/Util/ProgressBar.cuh"
+
 
 #include <cuda_runtime_api.h>
 #include <driver_types.h>
@@ -207,12 +209,22 @@ std::vector<glm::vec3> Camera::Render(const std::vector<Raytracer::Hittable> hit
     camInfo.fov = 60.0f;
     camInfo.projectionType = PERSPECTIVE;
     
+    std::vector<float> progressData(samples);
+
     timer.addMarker("Render Pass");
     for(int i = 0; i < samples; i++){
+        progressData[i] = static_cast<float>(i + 1) / static_cast<float>(samples);
+
         auto now = std::chrono::system_clock::now();
         auto epoch = now.time_since_epoch();
         double currTime = std::chrono::duration_cast<std::chrono::nanoseconds>(epoch).count();
+
         launchRenderPass(GPUmemory, hittables.size(), numRays, camInfo, currTime, skyColor, flags, stream);
+
+        if(flags & Flags::Progress){
+            cudaLaunchHostFunc(stream, ProgressCallBack, &progressData[i]);
+        }
+        
         timer.addMarker("Render Pass");
     }
     
@@ -232,6 +244,8 @@ std::vector<glm::vec3> Camera::Render(const std::vector<Raytracer::Hittable> hit
     timer.addMarker("GPU TO CPU MEMCPY");
     cudaMemcpy(colors.data(), GPUmemory.colors, numRays * sizeof(glm::vec3), cudaMemcpyDeviceToHost);
     timer.addMarker("GPU TO CPU MEMCPY");
+
+    std::cout << std::endl;
 
     if(timerEnabled){
         timer.printAllGroupTimes();
