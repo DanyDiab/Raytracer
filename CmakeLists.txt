@@ -33,7 +33,9 @@ add_executable(Raytracer
     "${MISC_DIR}/Window.cpp"
     "${MISC_DIR}/ObjReader.cpp"
     "${MISC_DIR}/PpmWriter.cpp"
-    "${MISC_DIR}/Timer.cpp"
+    "${MISC_DIR}/CPUTimer.cpp"
+    "${MISC_DIR}/GPUTimer.cu"
+
 
 )
 set_target_properties(Raytracer PROPERTIES 

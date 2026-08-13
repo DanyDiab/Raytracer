@@ -1,5 +1,6 @@
 #include <string>
 #include <vector>
+
 namespace Time{
 
     enum TimerState{
@@ -12,9 +13,9 @@ namespace Time{
         std::string tag;
     };
     
-    class Timer{
+    class CPUTimer{
         public:
-            Timer(bool enabled);
+            CPUTimer(bool enabled);
         // basic tools
             void Start();
             void AddLap(std::string name);

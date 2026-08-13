@@ -1,9 +1,9 @@
-#include "../headers/Util/Timer.hpp"
+#include "../headers/Util/CPUTimer.hpp"
 #include <chrono>
 #include <iostream>
 
 
-Time::Timer::Timer(bool enabled){
+Time::CPUTimer::CPUTimer(bool enabled){
     this->enabled = enabled;
     currState = TimerState::IDLE;
 }
@@ -14,7 +14,7 @@ double currTime() {
     return std::chrono::duration<double, std::milli>(epoch).count();
 }
 
-void Time::Timer::Start(){
+void Time::CPUTimer::Start(){
     if(currState != TimerState::IDLE || !enabled) return;
 
     this->startTime = currTime();
@@ -27,26 +27,26 @@ void Time::Timer::Start(){
     currState = TimerState::RUNNING;
 }
 
-void Time::Timer::Stop(){
+void Time::CPUTimer::Stop(){
     if(currState != TimerState::RUNNING || !enabled) return;
 
     this->endTime = currTime();
     currState = TimerState::IDLE;
 }
 
-double Time::Timer::TotalTimeElapsed(){
+double Time::CPUTimer::TotalTimeElapsed(){
     if(currState != TimerState::IDLE || !enabled) return -1.0f;
     return endTime - startTime;
 }
 
-double Time::Timer::CurrTimeElapsed(){
+double Time::CPUTimer::CurrTimeElapsed(){
     double curr = currTime();
 
     double delta = curr - startTime;
     return delta;
 }
 
-double Time::Timer::lapTimeAndAdvance(){
+double Time::CPUTimer::lapTimeAndAdvance(){
     double curr = currTime();
     double elapsedTime = curr - lastLapTime;
 
@@ -55,7 +55,7 @@ double Time::Timer::lapTimeAndAdvance(){
     return elapsedTime;
 }
 
-void Time::Timer::addEventToLaps(double time, std::string tag){
+void Time::CPUTimer::addEventToLaps(double time, std::string tag){
     
     Time::LapEvent event{
         .time = time,
@@ -65,7 +65,7 @@ void Time::Timer::addEventToLaps(double time, std::string tag){
     lapTimes.push_back(event);
 }
 
-void Time::Timer::AddLap(std::string tag){
+void Time::CPUTimer::AddLap(std::string tag){
     if(currState != TimerState::RUNNING || !enabled) return;
 
     double currTime = lapTimeAndAdvance();
@@ -73,7 +73,7 @@ void Time::Timer::AddLap(std::string tag){
     addEventToLaps(currTime, tag);
 }
 
-void Time::Timer::AddLap(){
+void Time::CPUTimer::AddLap(){
     if(currState != TimerState::RUNNING || !enabled) return;
 
     double currTime = lapTimeAndAdvance();
@@ -83,7 +83,7 @@ void Time::Timer::AddLap(){
     addEventToLaps(currTime, tag);
 }
 
-double Time::Timer::AverageLapTime(){
+double Time::CPUTimer::AverageLapTime(){
     if (lapTimes.empty()) {
         return 0.0;
     }
@@ -99,7 +99,7 @@ double Time::Timer::AverageLapTime(){
 }
 
 
-void Time::Timer::PrintLapTimes(){
+void Time::CPUTimer::PrintLapTimes(){
     int idx = 0;
     printf("IDX | TAG: TIME\n");
     for(const auto& event : lapTimes){
@@ -107,14 +107,3 @@ void Time::Timer::PrintLapTimes(){
         idx++;
     }
 }
-
-
-
-
-
-
-
-
-
-
-
