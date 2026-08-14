@@ -148,12 +148,53 @@ BVH::AABB::AABB(std::vector<Raytracer::Hittable> shapes){
     this->bounds = bounds;
 }
 
-
-
+// make x = y and y = x
+__device__ void swapValues(float* x, float* y){
+    float* temp = x;
+    x = y;
+    y = temp;
+}
 
 __device__ const float BVH::AABB::RayCollide(const Raytracer::Ray ray){
-    // first construct the 3 slabs
+    float tMinX = Raytracer::PlaneRayCollide(xSlab.plane1, ray);
 
+    if(tMinX == -1.0f){
+        return -1.0f;
+    }
+
+    float tMinY = Raytracer::PlaneRayCollide(ySlab.plane1, ray);
+
+    if(tMinY == -1.0f){
+        return -1.0f;
+    }
+
+    float tMinZ = Raytracer::PlaneRayCollide(zSlab.plane1, ray);
+
+    if(tMinZ == -1.0f){
+        return -1.0f;
+    }
+
+    // we know X,Y, and Z have valid hit points now
+    float tMaxX = Raytracer::PlaneRayCollide(xSlab.plane2, ray);
+    float tMaxY = Raytracer::PlaneRayCollide(ySlab.plane2, ray);
+    float tMaxZ = Raytracer::PlaneRayCollide(zSlab.plane2, ray);
+
+    // ensure that the mins are <= the maxs
+    if(tMaxX < tMinX){
+        swapValues(&tMinX, &tMaxX);
+    }
+    if(tMaxY < tMinY){
+        swapValues(&tMinY, &tMaxY);
+    }
+    if(tMaxZ < tMinZ){
+        swapValues(&tMinZ, &tMaxZ);
+    }
     
+    // now check if the intervals overlap
+    float enterPoint = glm::min(glm::min(tMinX, tMinY), tMinZ);
+    float exitPoint = glm::max(glm::max(tMaxX, tMaxY), tMaxZ);
+    
+    float hit = enterPoint <= exitPoint ? enterPoint : exitPoint;
+    return hit;
 }
 
