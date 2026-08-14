@@ -1,5 +1,7 @@
 #include "../headers/RayHits/Ray.cuh"
 #include "../headers/Hittables/Triangle.cuh"
+#include "../headers/Hittables/Plane.cuh"
+
 #include <glm/ext/quaternion_common.hpp>
 #include <glm/geometric.hpp>
 #include <stdio.h>
@@ -25,21 +27,6 @@ __device__ glm::vec3 TriangleRayNormal(const Raytracer::Triangle triangle, Raytr
     return normal;
 }
 
-// returns colision distance with plane with the ray
-__device__ float PlaneRayCollide(const Raytracer::Triangle triangle, const Raytracer::Ray ray, glm::vec3 normal){
-    float denom = glm::dot(ray.dir, normal);
-
-    if(denom == 0.0f){
-        // degenerate
-        return -1;
-    }
-
-    float numerator = glm::dot(triangle.p1, normal) - glm::dot(ray.origin, normal);
-
-    float t = numerator / denom;
-
-    return t;
-}
 
 
 __device__ bool pointInTriangle(const Raytracer::Triangle triangle, glm::vec3 point){
@@ -67,7 +54,12 @@ __device__ bool pointInTriangle(const Raytracer::Triangle triangle, glm::vec3 po
 __device__ float TriangleRayCollide(const Raytracer::Triangle triangle, const Raytracer::Ray ray){
     glm::vec3 normal = TriangleRayNormal(triangle, ray);
 
-    float planeHitDistance = PlaneRayCollide(triangle, ray, normal);
+    Raytracer::Plane plane{
+        .normal = normal,
+        .anchor = triangle.p1
+    };
+
+    float planeHitDistance = Raytracer::PlaneRayCollide(plane, ray);
 
     if(planeHitDistance <= 0.0f){
         return -1.0f;

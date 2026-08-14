@@ -27,8 +27,10 @@ add_executable(Raytracer
     "${HITTABLES_DIR}/Hittable.cu"
     "${HITTABLES_DIR}/Sphere.cu"
     "${HITTABLES_DIR}/Triangle.cu"
+    "${HITTABLES_DIR}/Plane.cu"
     "${HITTABLES_DIR}/Mesh.cpp"
     
+
     "${MISC_DIR}/PRNG.cu"
     "${MISC_DIR}/Window.cpp"
     "${MISC_DIR}/ObjReader.cpp"
