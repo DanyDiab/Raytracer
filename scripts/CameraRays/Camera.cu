@@ -10,6 +10,10 @@
 #include "../headers/RayHits/Ray.cuh"
 #include "../headers/Camera/CameraRayGenerationInfo.hpp"
 #include "../headers/Util/RayAveraging.cuh"
+#include "../headers/Camera/RenderFlags.hpp"
+#include "../headers/Util/GPUTimer.cuh"
+#include "../headers/Util/ProgressBar.cuh"
+
 
 #include <cuda_runtime_api.h>
 #include <driver_types.h>
@@ -19,7 +23,6 @@
 #include <glm/ext/vector_float3.hpp>
 #include <glm/vec3.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <iostream>
 #include <memory>
 #include <vector>
 
@@ -28,7 +31,7 @@
 #include <cuda/std/cmath>
 
 constexpr int maxNumBounces = 15;
-constexpr int samples = 10;
+constexpr int samples = 5;
 
 constexpr int renderTimeSeconds = 60;
 
@@ -52,7 +55,7 @@ Camera::Camera(ViewportInfo vi, glm::vec3 pos, glm::quat rot){
     viewportInfo = std::make_unique<ViewportInfo>(vi);
 }
 
-__device__ glm::vec3 RayHittableCollision(Raytracer::Ray ray, Raytracer::Hittable* hittables, int numHittables, curandState_t* state, glm::vec3 skyColor, int index){
+__device__ glm::vec3 RayHittableCollision(Raytracer::Ray ray, Raytracer::Hittable* hittables, int numHittables, curandState_t* state, glm::vec3 skyColor, int index, int renderingFlags){
     // invalid index
 
     Raytracer::HitRecord hi = ray.RayIntersectShapes(hittables, numHittables);
@@ -91,8 +94,12 @@ __device__ glm::vec3 RayHittableCollision(Raytracer::Ray ray, Raytracer::Hittabl
         }
 
         outputtedLight += hi.mat.emittedColor;
-
-        incomingLight += outputtedLight * throughput;
+        if(renderingFlags & Flags::RenderFlags::DebugNormals){
+            incomingLight = hi.normal;
+        }
+        else{
+            incomingLight += outputtedLight * throughput;
+        }
 
         throughput *= (hi.mat.albedo);
         
@@ -102,13 +109,13 @@ __device__ glm::vec3 RayHittableCollision(Raytracer::Ray ray, Raytracer::Hittabl
     return incomingLight;
 }
 
-__global__ void RenderPass(int numRays, Raytracer::Hittable* hittables, int numHittables, glm::vec3* colors, CameraRayGenerationInfo camInfo, double currTime, curandState_t* prngStates, glm::vec3 skyColor){
+__global__ void RenderPass(int numRays, Raytracer::Hittable* hittables, int numHittables, glm::vec3* colors, CameraRayGenerationInfo camInfo, double currTime, curandState_t* prngStates, glm::vec3 skyColor, int renderingFlags){
     int index = threadIdx.x + (blockDim.x * blockIdx.x);
 
     if(index < numRays){
         curandState_t prngState = prngStates[index];
         Raytracer::Ray ray = Raytracer::generateRayWithDeviation(camInfo,currTime,index, &prngState);
-        glm::vec3 color = RayHittableCollision(ray, hittables, numHittables, &prngState, skyColor, index);
+        glm::vec3 color = RayHittableCollision(ray, hittables, numHittables, &prngState, skyColor, index, renderingFlags);
         colors[index] += color;
 
 		prngStates[index] = prngState;
@@ -116,7 +123,7 @@ __global__ void RenderPass(int numRays, Raytracer::Hittable* hittables, int numH
 
 }
 
-GPUMemory initGPUMemory(const std::vector<std::shared_ptr<Raytracer::Hittable>>& hittables, int width, int height){
+GPUMemory initGPUMemory(const std::vector<Raytracer::Hittable> hittables, int width, int height){
     int numHittables = hittables.size();
     int numPixels = height * width;
     Raytracer::Hittable *localHittable;
@@ -124,7 +131,7 @@ GPUMemory initGPUMemory(const std::vector<std::shared_ptr<Raytracer::Hittable>>&
     
     for (int i = 0; i < numHittables; i++) {
         Raytracer::Hittable* dest = localHittable + i;
-        const Raytracer::Hittable* src = hittables[i].get();
+        const Raytracer::Hittable* src = &hittables[i];
         cudaMemcpy(dest, src, sizeof(Raytracer::Hittable), cudaMemcpyHostToDevice);
     }
 
@@ -158,35 +165,26 @@ GPUMemory initGPUMemory(const std::vector<std::shared_ptr<Raytracer::Hittable>>&
     return memory;
 }
 
-void launchRenderPass(GPUMemory memory, int numHittables, int numRays, CameraRayGenerationInfo camInfo, double currTime, glm::vec3 skyColor){
+void launchRenderPass(GPUMemory memory, int numHittables, int numRays, CameraRayGenerationInfo camInfo, double currTime, glm::vec3 skyColor, int renderingFlags, cudaStream_t stream){
     int threads = 256;
     int blocks = (numRays + threads - 1) / threads;
 
-    RenderPass<<<blocks, threads>>>(numRays, memory.hittable, numHittables, memory.colors, camInfo, currTime, memory.prngStates, skyColor);
+    RenderPass<<<blocks, threads, 0, stream>>>(numRays, memory.hittable, numHittables, memory.colors, camInfo, currTime, memory.prngStates, skyColor, renderingFlags);
 }
 
 
 
-void writeColorsToPPM(std::vector<glm::vec3> colors, int height, int width){
-    std::cout << "P3\n" << width << ' ' << height << "\n255\n";
 
-    for(int i = 0; i < colors.size(); i++){
-        glm::vec3 color = colors.at(i);
 
-        float ir = color.r * 255.9999f;
-        float ig = color.g * 255.9999f; 
-        float ib = color.b * 255.9999f;
+std::vector<glm::vec3> Camera::Render(const std::vector<Raytracer::Hittable> hittables, int flags){
+    bool timerEnabled = flags & Flags::RenderFlags::Performance;
 
-        std::cout << ir << ' ' << ig << ' ' << ib << '\n';
-    }
-    std::cout << std::flush;
-    // std::cout << std::endl;
-}
+    cudaStream_t stream;
 
-// 155, 203, 242
-void Camera::Render(const std::vector<std::shared_ptr<Raytracer::Hittable>>& hittables){
-    // glm::vec3 skyColor = glm::vec3(155 / 255.0,203 / 255.0,242 / 255.0);
-    glm::vec3 skyColor = glm::vec3(0);
+    cudaStreamCreate(&stream);
+    Time::GPUTimer timer(timerEnabled, stream);
+    glm::vec3 skyColor = glm::vec3(155 / 255.0,203 / 255.0,242 / 255.0);
+    // glm::vec3 skyColor = glm::vec3(0);
 
     int width = viewportInfo->width;
     int height = viewportInfo->height;
@@ -195,8 +193,9 @@ void Camera::Render(const std::vector<std::shared_ptr<Raytracer::Hittable>>& hit
     float left = transform.position.x - (width / 2.0f);
     float bot = transform.position.y - (height / 2.0f);
 
+    timer.addMarker("INIT GPU MEMORY");
     GPUMemory GPUmemory = initGPUMemory(hittables, width, height);
-
+    timer.addMarker("INIT GPU MEMORY");
     CameraRayGenerationInfo camInfo;
 
     camInfo.botOffset = bot;
@@ -207,26 +206,52 @@ void Camera::Render(const std::vector<std::shared_ptr<Raytracer::Hittable>>& hit
     camInfo.up = transform.up();
     camInfo.width = width;
     camInfo.height = height;
-    camInfo.fov = 40.0f;
+    camInfo.fov = 60.0f;
     camInfo.projectionType = PERSPECTIVE;
     
+    std::vector<float> progressData(samples);
+
+    timer.addMarker("Render Pass");
     for(int i = 0; i < samples; i++){
+        progressData[i] = static_cast<float>(i + 1) / static_cast<float>(samples);
+
         auto now = std::chrono::system_clock::now();
         auto epoch = now.time_since_epoch();
         double currTime = std::chrono::duration_cast<std::chrono::nanoseconds>(epoch).count();
-        launchRenderPass(GPUmemory, hittables.size(), numRays, camInfo, currTime, skyColor);
+
+        launchRenderPass(GPUmemory, hittables.size(), numRays, camInfo, currTime, skyColor, flags, stream);
+
+        if(flags & Flags::Progress){
+            cudaLaunchHostFunc(stream, ProgressCallBack, &progressData[i]);
+        }
+        
+        timer.addMarker("Render Pass");
     }
+    
+
 
     int threads = 256;
     int blocks = (numRays + threads - 1) / threads;
 
-    AverageRayColors<<<blocks, threads>>>(GPUmemory.colors,numRays,samples);
+    timer.addMarker("Ray Averaging");
+    AverageRayColors<<<blocks, threads, 0, stream>>>(GPUmemory.colors,numRays,samples);
+    timer.addMarker("Ray Averaging");
+
 
 
     std::vector<glm::vec3> colors;
     colors.resize(numRays);
+    timer.addMarker("GPU TO CPU MEMCPY");
     cudaMemcpy(colors.data(), GPUmemory.colors, numRays * sizeof(glm::vec3), cudaMemcpyDeviceToHost);
+    timer.addMarker("GPU TO CPU MEMCPY");
 
-    
-    writeColorsToPPM(colors, height, width);
+    std::cout << std::endl;
+
+    if(timerEnabled){
+        timer.printAllGroupTimes();
+    }
+
+    cudaStreamDestroy(stream);
+
+    return colors;
 }

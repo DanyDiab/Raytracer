@@ -1,4 +1,6 @@
 #include "../headers/Hittables/Triangle.cuh"
+#include "../headers/Util/ObjReader.hpp"
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -15,7 +17,7 @@ glm::vec3 readInLine(const std::string& text) {
     return vec;
 }
 
-std::vector<Raytracer::Triangle> ReadInObj(std::string filePath){
+std::vector<Raytracer::Triangle> FileOps::ReadInObj(std::string filePath){
     std::ifstream objFile(filePath);
 
     std::vector<Raytracer::Triangle> triangles;
@@ -32,7 +34,6 @@ std::vector<Raytracer::Triangle> ReadInObj(std::string filePath){
     std::vector<glm::vec3> vertices;
 
     while (getline (objFile, text)){
-        
         const char firstChar = text.at(0); 
 
         // vertex

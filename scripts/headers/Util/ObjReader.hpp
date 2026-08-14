@@ -5,4 +5,6 @@
 #include <vector>
 #include "../Hittables/Triangle.cuh"
 
-std::vector<Raytracer::Triangle> ReadInObj(std::string filePath);
+namespace FileOps{
+    std::vector<Raytracer::Triangle> ReadInObj(std::string filePath);
+}
