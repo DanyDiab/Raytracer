@@ -62,6 +62,64 @@ void updateEntireBounds(BVH::Bounds* entireBounds, BVH::Bounds* newBoundToInclud
     entireBounds->max.z = std::max(entireBounds->max.z, newBoundToInclude->max.z);
 }
 
+// call after create bounds
+void BVH::AABB::CreateSlabs(){
+    glm::vec3 minAnchor = bounds.min;
+    glm::vec3 maxAnchor = bounds.max; 
+
+    glm::vec3 xNorm = glm::vec3(1.0f,0.0f,0.0f);
+    glm::vec3 yNorm = glm::vec3(0.0f,1.0f,0.0f);
+    glm::vec3 zNorm = glm::vec3(0.0f,0.0f,1.0f);
+
+    Raytracer::Plane xPlane1{
+        .normal = xNorm,
+        .anchor = minAnchor
+    };
+    Raytracer::Plane xPlane2{
+        .normal = xNorm,
+        .anchor = maxAnchor
+    };
+
+    Raytracer::Plane yPlane1{
+        .normal = yNorm,
+        .anchor = minAnchor
+    };
+    Raytracer::Plane yPlane2{
+        .normal = yNorm,
+        .anchor = maxAnchor
+    };
+
+
+    Raytracer::Plane zPlane1{
+        .normal = zNorm,
+        .anchor = minAnchor
+    };
+    Raytracer::Plane zPlane2{
+        .normal = zNorm,
+        .anchor = maxAnchor
+    };
+
+
+    Slab xSlab{
+        .plane1 = xPlane1,
+        .plane2 = xPlane2
+    };
+
+    Slab ySlab{
+        .plane1 = yPlane1,
+        .plane2 = yPlane2
+    };
+
+    Slab zSlab{
+        .plane1 = zPlane1,
+        .plane2 = zPlane2
+    };
+
+    this->xSlab = xSlab;
+    this->ySlab = ySlab;
+    this->zSlab = zSlab;
+}
+
 BVH::AABB::AABB(std::vector<Raytracer::Hittable> shapes){
     BVH::Bounds bounds;
     bounds.min = glm::vec3(1 >> 31);
@@ -88,7 +146,14 @@ BVH::AABB::AABB(std::vector<Raytracer::Hittable> shapes){
     }
 
     this->bounds = bounds;
-
 }
 
+
+
+
+__device__ const float BVH::AABB::RayCollide(const Raytracer::Ray ray){
+    // first construct the 3 slabs
+
+    
+}
 
