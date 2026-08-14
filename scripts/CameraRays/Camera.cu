@@ -27,9 +27,8 @@
 #include <device_launch_parameters.h>
 #include <cuda/std/cmath>
 
-constexpr int maxNumBounces = 10;
-// how big is the square for each pixel? square it and this is the number of rays per pixel
-constexpr int samples = 100;
+constexpr int maxNumBounces = 15;
+constexpr int samples = 10;
 
 constexpr int renderTimeSeconds = 60;
 
