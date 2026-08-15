@@ -6,6 +6,8 @@
 #include "../headers/Util/Transform.hpp"
 #include "../headers/Hittables/Mesh.hpp"
 
+
+
 // this will transform the points according to the mesh struct info, then add to the list
 void Mesh::addMeshToScene(Mesh mesh, std::vector<Raytracer::Hittable>* hittables){
     Raytracer::Transform trans = mesh.transform;
