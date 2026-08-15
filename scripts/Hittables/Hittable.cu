@@ -39,11 +39,11 @@ namespace Raytracer {
             }
             case(SHAPE_TRIANGLE):{
                 distance = TriangleRayCollide(shape.triangle, ray);
-                normal = TriangleRayNormal(shape.triangle, ray);
+                normal = TriangleNormal(shape.triangle, ray, distance);
                 break;
             }
             default:{
-                printf("Shape Type Not Recognized | how did we get here?!?!??!?!?!??!?!?????!!!????");
+                printf("Shape Type Not Recognized | how did we get here?!!?!?!?!?!?!?!!!????");
                 break;
             }
         }

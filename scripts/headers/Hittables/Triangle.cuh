@@ -8,10 +8,21 @@ namespace Raytracer{
         glm::vec3 p1;
         glm::vec3 p2;
         glm::vec3 p3;
+
+        glm::vec3 p1Normal;
+        glm::vec3 p2Normal;
+        glm::vec3 p3Normal;
+    };
+
+    // barycentric
+    struct BACoords{
+        float bA;
+        float bB;
+        float bC;
     };
 }
 
 
 __device__ float TriangleRayCollide(const Raytracer::Triangle triangle, const Raytracer::Ray ray);
 
-__device__ glm::vec3 TriangleRayNormal(const Raytracer::Triangle triangle, Raytracer::Ray ray);
+__device__ glm::vec3 TriangleNormal(const Raytracer::Triangle triangle, const Raytracer::Ray ray, const float distance);

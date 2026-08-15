@@ -112,9 +112,9 @@ int main(int argc, char** argv){
 
     Raytracer::Transform meshTrans;
 
-    meshTrans.position = glm::vec3(0, 0, 0);
+    meshTrans.position = glm::vec3(-20, 0, 0);
     meshTrans.rotation = glm::vec3(glm::vec3(0, glm::radians(150.0f), 0));
-    meshTrans.scale = glm::vec3(1000.0f);
+    meshTrans.scale = glm::vec3(55.0f);
 
     mesh.transform = meshTrans;
 
