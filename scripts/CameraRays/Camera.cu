@@ -111,7 +111,18 @@ __device__ glm::vec3 RayHittableCollision(Raytracer::Ray ray, Raytracer::Hittabl
     return incomingLight;
 }
 
-__global__ void RenderPass(int numRays, Raytracer::Hittable* hittables, int numHittables, glm::vec3* colors, CameraRayGenerationInfo camInfo, double currTime, curandState_t* prngStates, glm::vec3 skyColor, int renderingFlags){
+__global__ void RenderPass(
+    int numRays, 
+    Raytracer::Hittable* hittables, 
+    int numHittables, 
+    glm::vec3* colors, 
+    CameraRayGenerationInfo camInfo, 
+    double currTime, 
+    curandState_t* prngStates, 
+    glm::vec3 skyColor, 
+    int renderingFlags, 
+    BVH::BVHNode* nodes
+){
     int index = threadIdx.x + (blockDim.x * blockIdx.x);
 
     if(index < numRays){
@@ -125,7 +136,7 @@ __global__ void RenderPass(int numRays, Raytracer::Hittable* hittables, int numH
 
 }
 
-GPUMemory initGPUMemory(const std::vector<Raytracer::Hittable> hittables, int width, int height){
+GPUMemory initGPUMemory(const std::vector<Raytracer::Hittable> hittables, int width, int height, BVH::BVH bvh){
     int numHittables = hittables.size();
     int numPixels = height * width;
     Raytracer::Hittable *localHittable;
@@ -157,12 +168,25 @@ GPUMemory initGPUMemory(const std::vector<Raytracer::Hittable> hittables, int wi
 	int threads = 256;
 	int blocks = (numPixels + threads - 1) / threads;
 
+    int numNodes = bvh.nodes.size();
+    BVH::BVHNode* nodes;
+    
+    cudaMalloc(&nodes, numNodes * sizeof(BVH::BVHNode));
+
+    for (int i = 0; i < numNodes; i++) {
+        BVH::BVHNode* dest = nodes + i;
+        const BVH::BVHNode* src = &bvh.nodes[i];
+        cudaMemcpy(dest, src, sizeof(BVH::BVHNode), cudaMemcpyHostToDevice);
+    }
+
+
 	PRNG::initRandStates<<<blocks, threads>>>(currTime, prngStates, numPixels);
 
     GPUMemory memory;
     memory.colors = colors;
     memory.hittable = localHittable;
     memory.prngStates = prngStates;
+    memory.nodes = nodes;
 
     return memory;
 }
@@ -171,7 +195,18 @@ void launchRenderPass(GPUMemory memory, int numHittables, int numRays, CameraRay
     int threads = 256;
     int blocks = (numRays + threads - 1) / threads;
 
-    RenderPass<<<blocks, threads, 0, stream>>>(numRays, memory.hittable, numHittables, memory.colors, camInfo, currTime, memory.prngStates, skyColor, renderingFlags);
+    RenderPass<<<blocks, threads, 0, stream>>>(
+        numRays, 
+        memory.hittable,
+        numHittables, 
+        memory.colors, 
+        camInfo, 
+        currTime, 
+        memory.prngStates, 
+        skyColor, 
+        renderingFlags, 
+        memory.nodes
+    );
 }
 
 
@@ -194,9 +229,10 @@ std::vector<glm::vec3> Camera::Render(const std::vector<Raytracer::Hittable> hit
 
     float left = transform.position.x - (width / 2.0f);
     float bot = transform.position.y - (height / 2.0f);
+    BVH::BVH bvh = BVH::BVH(hittables);
 
     timer.addMarker("INIT GPU MEMORY");
-    GPUMemory GPUmemory = initGPUMemory(hittables, width, height);
+    GPUMemory GPUmemory = initGPUMemory(hittables, width, height, bvh);
     timer.addMarker("INIT GPU MEMORY");
     CameraRayGenerationInfo camInfo;
 
@@ -214,7 +250,6 @@ std::vector<glm::vec3> Camera::Render(const std::vector<Raytracer::Hittable> hit
     std::vector<float> progressData(samples);
 
 
-    BVH::BVH bvh = BVH::BVH(hittables);
     timer.addMarker("Render Pass");
     for(int i = 0; i < samples; i++){
         progressData[i] = static_cast<float>(i + 1) / static_cast<float>(samples);

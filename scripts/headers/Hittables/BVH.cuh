@@ -18,9 +18,10 @@ namespace BVH{
     class BVH {
         public:
             BVH(std::vector<Raytracer::Hittable> shapes);
+            __device__ std::vector<Raytracer::Hittable> GetCandidateShapes(Raytracer::Ray ray);
+            std::vector<BVHNode> nodes;
 
         private:
-            std::vector<BVHNode> nodes;
             void constructBVHRecur(std::vector<Raytracer::Hittable>& shapes);
     };
 }

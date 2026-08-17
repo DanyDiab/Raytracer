@@ -82,3 +82,11 @@ void BVH::BVH::constructBVHRecur(std::vector<Raytracer::Hittable>& shapes){
 BVH::BVH::BVH(std::vector<Raytracer::Hittable> shapes){
     constructBVHRecur(shapes);
 }
+
+
+// traverse the BVH and return the closest shape to the ray
+// this might be able to replace the RayIntersectShapes? 
+__device__ std::vector<Raytracer::Hittable> GetCandidateShapes(Raytracer::Ray ray){
+    Raytracer::Hittable candidates;
+}
+

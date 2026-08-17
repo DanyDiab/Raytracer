@@ -122,7 +122,7 @@ int main(int argc, char** argv){
         .albedo = glm::vec3(1.0f,0.0,1.0f),
     };
 
-    Mesh::addMeshToScene(mesh, &shapeList);
+    // Mesh::addMeshToScene(mesh, &shapeList);
 
 
     int renderingFlags = Flags::ProcessFlags(argc, argv);
