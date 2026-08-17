@@ -40,9 +40,8 @@ std::vector<Raytracer::Hittable> sortShapes(std::vector<Raytracer::Hittable>& sh
 }
 
 // this needs to be moved to parallel GPU construction
-void BVH::BVH::constructBVHRecur(std::vector<Raytracer::Hittable> shapes){
+void BVH::BVH::constructBVHRecur(std::vector<Raytracer::Hittable>& shapes){
     AABB aabb = AABB(shapes);
-    
     
     if(shapes.size() == 1){
         BVHNode leaf{
@@ -52,6 +51,7 @@ void BVH::BVH::constructBVHRecur(std::vector<Raytracer::Hittable> shapes){
         };
 
         nodes.push_back(leaf);
+        return;
     }
 
     glm::vec3 axisToSplit = aabb.getLongestAxis();
@@ -80,10 +80,5 @@ void BVH::BVH::constructBVHRecur(std::vector<Raytracer::Hittable> shapes){
 
 
 BVH::BVH::BVH(std::vector<Raytracer::Hittable> shapes){
-
-
-    
-
-    
-
+    constructBVHRecur(shapes);
 }

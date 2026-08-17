@@ -21,6 +21,6 @@ namespace BVH{
 
         private:
             std::vector<BVHNode> nodes;
-            void constructBVHRecur(std::vector<Raytracer::Hittable> shapes);
+            void constructBVHRecur(std::vector<Raytracer::Hittable>& shapes);
     };
 }

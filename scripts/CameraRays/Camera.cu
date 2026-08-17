@@ -5,6 +5,8 @@
 #include "../headers/Util/GPUMemory.hpp"
 #include "../headers/RayHits/HitRecord.hpp"
 #include "../headers/Hittables/Hittable.cuh"
+#include "../headers/Hittables/BVH.cuh"
+
 #include "../headers/Util/PRNG.cuh"
 #include "../headers/Util/Transform.hpp"
 #include "../headers/RayHits/Ray.cuh"
@@ -31,7 +33,7 @@
 #include <cuda/std/cmath>
 
 constexpr int maxNumBounces = 15;
-constexpr int samples = 100;
+constexpr int samples = 1;
 
 constexpr int renderTimeSeconds = 60;
 
@@ -211,6 +213,8 @@ std::vector<glm::vec3> Camera::Render(const std::vector<Raytracer::Hittable> hit
     
     std::vector<float> progressData(samples);
 
+
+    BVH::BVH bvh = BVH::BVH(hittables);
     timer.addMarker("Render Pass");
     for(int i = 0; i < samples; i++){
         progressData[i] = static_cast<float>(i + 1) / static_cast<float>(samples);
