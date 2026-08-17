@@ -149,7 +149,7 @@ BVH::AABB::AABB(std::vector<Raytracer::Hittable> shapes){
 }
 
 // make x = y and y = x
-__device__ void swapValues(float* x, float* y){
+inline __device__ void swapValues(float* x, float* y){
     float* temp = x;
     x = y;
     y = temp;
@@ -196,5 +196,22 @@ __device__ const float BVH::AABB::RayCollide(const Raytracer::Ray ray){
     
     float hit = enterPoint <= exitPoint ? enterPoint : exitPoint;
     return hit;
+}
+
+glm::vec3 BVH::AABB::getLongestAxis(){
+    float xLen = bounds.max.x - bounds.min.x;
+    float yLen = bounds.max.y - bounds.min.y;
+    float zLen = bounds.max.z - bounds.min.z;
+
+    if(xLen > yLen && xLen > zLen){
+        return glm::vec3(1.0f,0.0f,0.0f);
+    }
+    else if(yLen > xLen && yLen > zLen){
+        return glm::vec3(0.0f, 1.0f, 0.0f);
+    }
+    else{
+        return glm::vec3(0.0f, 0.0f, 1.0f);
+    }
+
 }
 

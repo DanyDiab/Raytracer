@@ -31,7 +31,7 @@
 #include <cuda/std/cmath>
 
 constexpr int maxNumBounces = 15;
-constexpr int samples = 1;
+constexpr int samples = 100;
 
 constexpr int renderTimeSeconds = 60;
 

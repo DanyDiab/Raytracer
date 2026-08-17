@@ -11,25 +11,48 @@
 #include "../headers/Hittables/Material.hpp"
 #include "../headers/Util/PRNG.cuh"
 
+inline __device__ glm::vec3 getShapeNormal(const Raytracer::Hittable& shape, const float distance, const Raytracer::Ray& ray){
+    glm::vec3 normal;
+    switch(shape.shapeType){
+        case(Raytracer::SHAPE_SPHERE):{
+            normal = SphereRayNormal(shape.shape.sphere, ray, distance);
+
+            break;
+        }
+        case(Raytracer::SHAPE_TRIANGLE):{
+            normal = TriangleNormal(shape.shape.triangle, ray, distance);
+            break;
+        }
+        default:{
+            printf("Shape Type Not Recognized | how did we get here?!!?!?!?!?!?!?!!!????");
+            break;
+        }
+    }
+
+    return normal;
+}
+
 
 __device__ Raytracer::HitRecord Raytracer::Ray::RayIntersectShapes(Raytracer::Hittable* hittables, const int numHittables){
     Raytracer::HitRecord closestRecord;
     closestRecord.hitDistance = -1.0f;
-    closestRecord.normal = glm::vec3(0);
-    
+    Raytracer::Hittable closestShape;
     // found closer hit point
     for(int i = 0; i < numHittables; i++){
-        Raytracer::Hittable& shape = hittables[i];
+        Raytracer::Hittable shape = hittables[i];
         Raytracer::HitRecord rayHR = shape.rayCollide(*this);
         if(rayHR.hitDistance < -.999999f || rayHR.hitDistance < 0.001f) continue;
 
         // found better hit
         if((closestRecord.hitDistance == -1.0f) || rayHR.hitDistance < closestRecord.hitDistance){
-
+            closestShape = shape;
             closestRecord.hitDistance = rayHR.hitDistance;
-            closestRecord.normal = rayHR.normal;
             closestRecord.mat = shape.mat;
         }
+    }
+
+    if (closestRecord.hitDistance != -1.0f) {
+        closestRecord.normal = getShapeNormal(closestShape, closestRecord.hitDistance, *this);
     }
 
     return closestRecord;

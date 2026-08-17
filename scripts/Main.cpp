@@ -94,7 +94,7 @@ int main(int argc, char** argv){
     Raytracer::Hittable sunHit = Raytracer::Hittable(sun);
     sunHit.mat = {
         .albedo = glm::vec3(1.0f),
-        .emittedColor = glm::vec3(2.0f)
+        .emittedColor = glm::vec3(1.0f)
     };
 
     std::vector<Raytracer::Hittable> shapeList;
@@ -120,8 +120,6 @@ int main(int argc, char** argv){
 
     mesh.mat = {
         .albedo = glm::vec3(1.0f,0.0,1.0f),
-        .metallic = .8,
-        .roughness = .1f
     };
 
     Mesh::addMeshToScene(mesh, &shapeList);

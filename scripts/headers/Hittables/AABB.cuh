@@ -20,9 +20,8 @@ namespace BVH{
             AABB(const std::vector<Raytracer::Hittable> hittables);
             Bounds bounds;
             __device__ const float RayCollide(const Raytracer::Ray ray);
-
+            glm::vec3 getLongestAxis();
         private:
-
             void CreateSlabs();
             
             Slab xSlab;

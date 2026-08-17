@@ -29,6 +29,7 @@ namespace Raytracer{
         __device__ glm::vec4 determineScatterDirection(Raytracer::HitRecord record, curandState_t* state);
 
         __device__ Raytracer::HitRecord RayIntersectShapes(Raytracer::Hittable* hittables, const int numHittables);
+
     };
     __device__ Raytracer::Ray generateRayWithDeviation(CameraRayGenerationInfo camInfo, double currTime, int index, curandState_t* prngState);
     

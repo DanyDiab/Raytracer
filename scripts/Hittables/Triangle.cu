@@ -9,7 +9,7 @@
 
 
 
-__device__ glm::vec3 TriangleFaceNormal(const Raytracer::Triangle triangle){
+inline __device__ glm::vec3 TriangleFaceNormal(const Raytracer::Triangle triangle){
     glm::vec3 AB = triangle.p2 - triangle.p1;
     glm::vec3 AC = triangle.p3 - triangle.p1;
 
@@ -18,7 +18,7 @@ __device__ glm::vec3 TriangleFaceNormal(const Raytracer::Triangle triangle){
     return glm::normalize(ortho);
 }
 
-__device__ Raytracer::BACoords GetBaryCentricCoords(const Raytracer::Triangle triangle, glm::vec3 point){
+inline __device__ Raytracer::BACoords GetBaryCentricCoords(const Raytracer::Triangle triangle, glm::vec3 point){
     // get barycentric coordinates
 
     glm::vec3 triNormal = TriangleFaceNormal(triangle);
@@ -42,7 +42,7 @@ __device__ Raytracer::BACoords GetBaryCentricCoords(const Raytracer::Triangle tr
     return baCoords;
 }
 
-__device__ glm::vec3 TriangleVertexRayNormal(const Raytracer::Triangle triangle, const Raytracer::Ray ray, const float distance){
+inline __device__ glm::vec3 TriangleVertexRayNormal(const Raytracer::Triangle triangle, const Raytracer::Ray ray, const float distance){
     glm::vec3 hitPoint = ray.origin + (ray.dir * distance);
 
     Raytracer::BACoords baCoords = GetBaryCentricCoords(triangle, hitPoint);
@@ -57,7 +57,7 @@ __device__ glm::vec3 TriangleVertexRayNormal(const Raytracer::Triangle triangle,
 }
 
 
-__device__ glm::vec3 TriangleFaceRayNormal(const Raytracer::Triangle triangle, Raytracer::Ray ray){
+inline __device__ glm::vec3 TriangleFaceRayNormal(const Raytracer::Triangle triangle, Raytracer::Ray ray){
 
     glm::vec3 normal = TriangleFaceNormal(triangle);
 
@@ -78,7 +78,7 @@ __device__ glm::vec3 TriangleNormal(const Raytracer::Triangle triangle, const Ra
 }
 
 
-__device__ bool pointInTriangle(const Raytracer::Triangle triangle, glm::vec3 point){
+inline __device__ bool pointInTriangle(const Raytracer::Triangle triangle, glm::vec3 point){
 
     Raytracer::BACoords coords = GetBaryCentricCoords(triangle, point);
     bool valid = coords.bA >= 0.0f && coords.bB >= 0.0f && coords.bC >= 0.0f;

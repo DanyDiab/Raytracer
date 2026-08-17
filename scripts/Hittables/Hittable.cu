@@ -33,13 +33,11 @@ namespace Raytracer {
         switch(shapeType){
             case(SHAPE_SPHERE):{
                 distance = SphereRayCollide(shape.sphere, ray);
-                normal = SphereRayNormal(shape.sphere, ray, distance);
 
                 break;
             }
             case(SHAPE_TRIANGLE):{
                 distance = TriangleRayCollide(shape.triangle, ray);
-                normal = TriangleNormal(shape.triangle, ray, distance);
                 break;
             }
             default:{
@@ -53,7 +51,6 @@ namespace Raytracer {
         }
 
         hi.hitDistance = distance;
-        hi.normal = normal;
 
         return hi;
     }
