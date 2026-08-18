@@ -11,28 +11,6 @@
 #include "../headers/Hittables/Material.hpp"
 #include "../headers/Util/PRNG.cuh"
 
-inline __device__ glm::vec3 getShapeNormal(const Raytracer::Hittable& shape, const float distance, const Raytracer::Ray& ray){
-    glm::vec3 normal;
-    switch(shape.shapeType){
-        case(Raytracer::SHAPE_SPHERE):{
-            normal = SphereRayNormal(shape.shape.sphere, ray, distance);
-
-            break;
-        }
-        case(Raytracer::SHAPE_TRIANGLE):{
-            normal = TriangleNormal(shape.shape.triangle, ray, distance);
-            break;
-        }
-        default:{
-            printf("Shape Type Not Recognized | how did we get here?!!?!?!?!?!?!?!!!????");
-            break;
-        }
-    }
-
-    return normal;
-}
-
-
 __device__ Raytracer::HitRecord Raytracer::Ray::RayIntersectShapes(Raytracer::Hittable* hittables, const int numHittables){
     Raytracer::HitRecord closestRecord;
     closestRecord.hitDistance = -1.0f;
@@ -52,7 +30,7 @@ __device__ Raytracer::HitRecord Raytracer::Ray::RayIntersectShapes(Raytracer::Hi
     }
 
     if (closestRecord.hitDistance != -1.0f) {
-        closestRecord.normal = getShapeNormal(closestShape, closestRecord.hitDistance, *this);
+        closestRecord.normal = closestShape.getShapeNormal(closestRecord.hitDistance, *this);
     }
 
     return closestRecord;

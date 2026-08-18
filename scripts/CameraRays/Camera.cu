@@ -57,10 +57,18 @@ Camera::Camera(ViewportInfo vi, glm::vec3 pos, glm::quat rot){
     viewportInfo = std::make_unique<ViewportInfo>(vi);
 }
 
-__device__ glm::vec3 RayHittableCollision(Raytracer::Ray ray, Raytracer::Hittable* hittables, int numHittables, curandState_t* state, glm::vec3 skyColor, int index, int renderingFlags){
+__device__ glm::vec3 RayHittableCollision(
+    Raytracer::Ray ray, 
+    Raytracer::Hittable* hittables, 
+    int numHittables, 
+    curandState_t* state, 
+    glm::vec3 skyColor, 
+    int index, 
+    int renderingFlags,
+    BVH::BVHNode* nodes){
     // invalid index
 
-    Raytracer::HitRecord hi = ray.RayIntersectShapes(hittables, numHittables);
+    Raytracer::HitRecord hi = BVH::trace(ray, nodes);
 
     if(hi.hitDistance < 0.0f){
         return skyColor;
@@ -88,7 +96,7 @@ __device__ glm::vec3 RayHittableCollision(Raytracer::Ray ray, Raytracer::Hittabl
         glm::vec3 nudgeDir = refractionFlag > 0 ? ray.dir : hi.normal;
         ray.origin = hitPoint + (nudgeDir *.001f);
 
-        hi = ray.RayIntersectShapes(hittables, numHittables);
+        hi = BVH::trace(ray, nodes);
 
         if (hi.hitDistance < 0.0f) {
             incomingLight += skyColor * throughput;
@@ -128,7 +136,7 @@ __global__ void RenderPass(
     if(index < numRays){
         curandState_t prngState = prngStates[index];
         Raytracer::Ray ray = Raytracer::generateRayWithDeviation(camInfo,currTime,index, &prngState);
-        glm::vec3 color = RayHittableCollision(ray, hittables, numHittables, &prngState, skyColor, index, renderingFlags);
+        glm::vec3 color = RayHittableCollision(ray, hittables, numHittables, &prngState, skyColor, index, renderingFlags, nodes);
         colors[index] += color;
 
 		prngStates[index] = prngState;

@@ -17,6 +17,9 @@ namespace BVH{
 
     class AABB{
         public:
+            __host__ __device__ AABB() = default;
+            __host__ __device__ ~AABB() = default;
+
             AABB(const std::vector<Raytracer::Hittable> hittables);
             Bounds bounds;
             __device__ const float RayCollide(const Raytracer::Ray ray);

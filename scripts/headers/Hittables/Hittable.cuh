@@ -21,21 +21,19 @@ namespace Raytracer{
 
     class Hittable{
         public:
+            Geometry shape;
+            Material mat;
+            ShapeType shapeType;
+
             __host__ __device__ Hittable() = default;
             __host__ __device__ Hittable(Sphere sphere);
             __host__ __device__ Hittable(Triangle triangle);
 
             __host__ __device__ ~Hittable() = default;
 
-            Geometry shape;
 
-            Material mat;
             __device__  Raytracer::HitRecord rayCollide(const Raytracer::Ray ray) const;
+            __device__ glm::vec3 getShapeNormal(const float distance, const Raytracer::Ray& ray);
 
-            
-            ShapeType shapeType;
-
-
-        private:
     };
 }

@@ -3,7 +3,7 @@
 #include <glm/geometric.hpp>
 #include <vector>
 #include <stack>
-
+#include <cstdio>
 #include "../headers/Hittables/BVH.cuh"
 #include "../headers/Hittables/AABB.cuh"
 
@@ -40,17 +40,16 @@ std::vector<Raytracer::Hittable> sortShapes(std::vector<Raytracer::Hittable>& sh
 }
 
 // this needs to be moved to parallel GPU construction
-void BVH::BVH::constructBVHRecur(std::vector<Raytracer::Hittable>& shapes){
+void BVH::BVH::constructBVHRecur(int nodeIndex, std::vector<Raytracer::Hittable>& shapes){
+
+    
     AABB aabb = AABB(shapes);
     
-    if(shapes.size() == 1){
-        BVHNode leaf{
-            .childStart = -1,
-            .aabb = aabb,
-            .shape = shapes.at(0),
-        };
+    nodes[nodeIndex].aabb = aabb;
 
-        nodes.push_back(leaf);
+    if(shapes.size() == 1){
+        nodes[nodeIndex].childStart = -1.0f;
+        nodes[nodeIndex].shape = shapes[0];
         return;
     }
 
@@ -67,26 +66,69 @@ void BVH::BVH::constructBVHRecur(std::vector<Raytracer::Hittable>& shapes){
     std::vector<Raytracer::Hittable> right(splitPoint, shapes.end());
 
 
-    BVHNode rootNode{
-        .childStart = static_cast<int>((nodes.size() - 1)),
-        .aabb = aabb
-    };
 
-    nodes.push_back(rootNode);
+    int leftChildIndex = static_cast<int>(nodes.size());
+    int rightChildIndex = leftChildIndex + 1;
 
-    constructBVHRecur(left);
-    constructBVHRecur(right);
+    nodes[nodeIndex].childStart = leftChildIndex;
+    nodes.resize(nodes.size() + 2);
+
+    constructBVHRecur(leftChildIndex, left);
+    constructBVHRecur(rightChildIndex, right);
 }
 
 
 BVH::BVH::BVH(std::vector<Raytracer::Hittable> shapes){
-    constructBVHRecur(shapes);
+    nodes.resize(1);
+    constructBVHRecur(0, shapes);
 }
 
 
-// traverse the BVH and return the closest shape to the ray
-// this might be able to replace the RayIntersectShapes? 
-__device__ std::vector<Raytracer::Hittable> GetCandidateShapes(Raytracer::Ray ray){
-    Raytracer::Hittable candidates;
+__device__ Raytracer::HitRecord BVH::trace(const Raytracer::Ray ray, const BVHNode* nodes){
+
+    int stack[64];
+    int stackPtr = 0;
+
+    stack[stackPtr++] = 0;
+
+    Raytracer::HitRecord closestRecord;
+    Raytracer::Hittable closestShape;
+
+    closestRecord.hitDistance = INFINITY;
+
+    while(stackPtr > 0){
+        BVHNode root = nodes[stack[--stackPtr]];
+
+        if(root.aabb.RayCollide(ray) == -1.0f){
+            continue;
+        } 
+        // trace this shape
+        if(root.childStart < 0){
+            Raytracer::Hittable shapeHit = root.shape;
+            Raytracer::HitRecord record = shapeHit.rayCollide(ray);
+
+            if(record.hitDistance < 0) continue;
+
+            if(record.hitDistance < closestRecord.hitDistance){
+                closestShape = shapeHit;
+                closestRecord = record;
+                closestRecord.mat = shapeHit.mat;
+            }
+            continue;
+        }
+
+        // add left and right child
+        stack[stackPtr++] = root.childStart;
+        stack[stackPtr++] = root.childStart + 1;
+    }
+
+    if(closestRecord.hitDistance < INFINITY){
+        closestRecord.normal = closestShape.getShapeNormal(closestRecord.hitDistance, ray);
+    }
+    else{
+        closestRecord.hitDistance = -1.0f;
+    }
+
+    return closestRecord;
 }
 

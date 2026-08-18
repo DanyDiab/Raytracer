@@ -55,6 +55,27 @@ namespace Raytracer {
         return hi;
     }
 
+__device__ glm::vec3 Hittable::getShapeNormal(const float distance, const Raytracer::Ray& ray){
+    glm::vec3 normal;
+    switch(shapeType){
+        case(Raytracer::SHAPE_SPHERE):{
+            normal = SphereRayNormal(shape.sphere, ray, distance);
+
+            break;
+        }
+        case(Raytracer::SHAPE_TRIANGLE):{
+            normal = TriangleNormal(shape.triangle, ray, distance);
+            break;
+        }
+        default:{
+            printf("Shape Type Not Recognized | how did we get here?!!?!?!?!?!?!?!!!????");
+            break;
+        }
+    }
+
+    return normal;
+}
+
 
 
 }
