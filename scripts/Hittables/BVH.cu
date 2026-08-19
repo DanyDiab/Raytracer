@@ -47,8 +47,8 @@ void BVH::BVH::constructBVHRecur(int nodeIndex, std::vector<Raytracer::Hittable>
     
     nodes[nodeIndex].aabb = aabb;
 
-    if(shapes.size() == 1){
-        nodes[nodeIndex].childStart = -1.0f;
+    if(shapes.size() <= 1){
+        nodes[nodeIndex].childStart = -1;
         nodes[nodeIndex].shape = shapes[0];
         return;
     }
@@ -57,8 +57,7 @@ void BVH::BVH::constructBVHRecur(int nodeIndex, std::vector<Raytracer::Hittable>
     
     sortShapes(shapes, axisToSplit);
 
-    std::size_t count = shapes.size();
-    std::size_t half = glm::floor(count / 2.0f);
+    std::size_t half = glm::floor(shapes.size() / 2.0f);
 
     std::vector<Raytracer::Hittable>::iterator splitPoint = shapes.begin() + half;
 
@@ -69,9 +68,9 @@ void BVH::BVH::constructBVHRecur(int nodeIndex, std::vector<Raytracer::Hittable>
 
     int leftChildIndex = static_cast<int>(nodes.size());
     int rightChildIndex = leftChildIndex + 1;
-
-    nodes[nodeIndex].childStart = leftChildIndex;
+    
     nodes.resize(nodes.size() + 2);
+    nodes[nodeIndex].childStart = leftChildIndex;
 
     constructBVHRecur(leftChildIndex, left);
     constructBVHRecur(rightChildIndex, right);
