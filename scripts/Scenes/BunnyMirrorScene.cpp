@@ -2,11 +2,11 @@
 #include "../headers/Camera/Camera.hpp"
 #include "../headers/Hittables/Mesh.hpp"
 #include "../headers/Util/ObjReader.hpp"
-#include <vector>
 
 
-// chat created
-Scenes::SceneInfo LoadBVHTestScene(){
+
+
+Scenes::SceneInfo LoadBunnyMirrorScene(){
     ViewportInfo vi{
         .near = .001f,
         .far = 20000.0f,
@@ -16,21 +16,31 @@ Scenes::SceneInfo LoadBVHTestScene(){
 
     Camera cam(vi, glm::vec3(0.0f, 60.0f, 160.0f), glm::quat(glm::vec3(glm::radians(-8.0f), glm::radians(90.0f), 0.0f)));
 
-    std::vector<Raytracer::Hittable> shapeList;
     
+    Raytracer::Sphere ground = Raytracer::Sphere{
+        .radius = 10000.0f,
+        .position = glm::vec3(0.0f, -10010.0f, 0.0f),
+    };
+
+    // 16, 33, 17
+    Raytracer::Hittable groundHit = Raytracer::Hittable(ground);
+    groundHit.mat = {
+        .albedo = glm::vec3(16.0f/255.0f, 33.0f/255.0f, 17.0f/255.0f), 
+    };
+
 
     Raytracer::Sphere sphere = Raytracer::Sphere{
         .radius = 50.0f,
-        .position = glm::vec3(-20, 0, 0),
+        .position = glm::vec3(-110.0f, 100.0f, 0.0f),
     };
+
 // 27, 22, 33
     Raytracer::Hittable sphereHit = Raytracer::Hittable(sphere);
     sphereHit.mat = {
         .albedo = glm::vec3(27.0f / 255.0f, 22.0 / 255.0f, 33 / 255.0f), 
         .metallic = 0.0f,
+        .roughness = 0.8f
     };
-
-    shapeList.push_back(sphereHit);
 
     Raytracer::Triangle mirror1 = Raytracer::Triangle{
         .p1 = glm::vec3(-100.0f, 20.0f, 300.0f),
@@ -40,28 +50,25 @@ Scenes::SceneInfo LoadBVHTestScene(){
 
 // 27, 22, 33
     Raytracer::Hittable mirror1Hit = Raytracer::Hittable(mirror1);
+
     mirror1Hit.mat = {
         .albedo = glm::vec3(.8f,.8f,.8f), 
         .metallic = 1.0f
     };
 
-    shapeList.push_back(mirror1Hit);
-
     
-
     Raytracer::Triangle mirror2 = Raytracer::Triangle{
         .p1 = glm::vec3(150.0f, 20.0f, 300.0f),
         .p2 = glm::vec3(140.0f, 20.0f, -300.0f),
         .p3 = glm::vec3(145.0f, 400.0f, 0.0f),
     };
+
 // 27, 22, 33
     Raytracer::Hittable mirror2Hit = Raytracer::Hittable(mirror2);
     mirror2Hit.mat = {
         .albedo = glm::vec3(.8f,.8f,.8f), 
         .metallic = 1.0f
     };
-    shapeList.push_back(mirror2Hit);
-
 
     Raytracer::Sphere sun = Raytracer::Sphere{
         .radius = 5000.0f, 
@@ -74,8 +81,32 @@ Scenes::SceneInfo LoadBVHTestScene(){
         .emittedColor = glm::vec3(1.0f)
     };
 
-    shapeList.push_back(sunHit);
+    std::vector<Raytracer::Hittable> shapeList;
 
+    shapeList.push_back(groundHit);
+    shapeList.push_back(sunHit);
+    shapeList.push_back(mirror1Hit);
+    shapeList.push_back(mirror2Hit);
+
+
+    std::vector<Raytracer::Triangle> meshTris = FileOps::ReadInObj("./models/bunny.obj");
+
+    Mesh::Mesh mesh;
+    mesh.triangles = meshTris;
+
+    Raytracer::Transform meshTrans;
+
+    meshTrans.position = glm::vec3(-20, 0, 0);
+    meshTrans.rotation = glm::vec3(glm::vec3(0, glm::radians(150.0f), 0));
+    meshTrans.scale = glm::vec3(55.0f);
+
+    mesh.transform = meshTrans;
+
+    mesh.mat = {
+        .albedo = glm::vec3(1.0f,0.0,1.0f),
+    };
+
+    Mesh::addMeshToScene(mesh, &shapeList);
 
 
     Scenes::SceneInfo SI{

@@ -1,5 +1,7 @@
 #include "../headers/Scenes/SceneLoader.hpp"
 #include "../headers/Scenes/BVHTestScene.hpp"
+#include "../headers/Scenes/BunnyMirrorScene.hpp"
+
 
 #include "../headers/Hittables/Hittable.cuh"
 
@@ -11,7 +13,7 @@ Scenes::SceneInfo Scenes::LoadScene(SceneList scene){
             return LoadBVHTestScene();
             break;
         case BUNNYMIRROR:
-        // CREATE THIS SCENE
+            return LoadBunnyMirrorScene();
             break;
     }
 

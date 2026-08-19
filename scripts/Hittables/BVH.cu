@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <glm/geometric.hpp>
 #include <vector>
@@ -64,8 +65,6 @@ void BVH::BVH::constructBVHRecur(int nodeIndex, std::vector<Raytracer::Hittable>
     std::vector<Raytracer::Hittable> left(shapes.begin(), splitPoint);
     std::vector<Raytracer::Hittable> right(splitPoint, shapes.end());
 
-
-
     int leftChildIndex = static_cast<int>(nodes.size());
     int rightChildIndex = leftChildIndex + 1;
     
@@ -97,8 +96,9 @@ __device__ Raytracer::HitRecord BVH::trace(const Raytracer::Ray ray, const BVHNo
 
     while(stackPtr > 0){
         BVHNode root = nodes[stack[--stackPtr]];
-
-        if(root.aabb.RayCollide(ray) == -1.0f){
+        
+        float boxDistance = root.aabb.RayCollide(ray);
+        if(boxDistance < 0.0f || boxDistance > closestRecord.hitDistance){
             continue;
         } 
         // trace this shape
@@ -106,7 +106,7 @@ __device__ Raytracer::HitRecord BVH::trace(const Raytracer::Ray ray, const BVHNo
             Raytracer::Hittable shapeHit = root.shape;
             Raytracer::HitRecord record = shapeHit.rayCollide(ray);
 
-            if(record.hitDistance < 0) continue;
+            if(record.hitDistance < 0.0f) continue;
 
             if(record.hitDistance < closestRecord.hitDistance){
                 closestShape = shapeHit;

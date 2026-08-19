@@ -1,4 +1,5 @@
 #include "../headers/Hittables/AABB.cuh"
+#include <cmath>
 #include <iostream>
 #include <vector>
 
@@ -122,8 +123,8 @@ void BVH::AABB::CreateSlabs(){
 
 BVH::AABB::AABB(std::vector<Raytracer::Hittable> shapes){
     BVH::Bounds bounds;
-    bounds.min = glm::vec3(1 >> 31);
-    bounds.max = glm::vec3(1 << 31);
+    bounds.min = glm::vec3(INFINITY);
+    bounds.max = glm::vec3(-INFINITY);
 
     for(const auto& hit : shapes){
         BVH::Bounds shapeBounds;
@@ -146,6 +147,7 @@ BVH::AABB::AABB(std::vector<Raytracer::Hittable> shapes){
     }
 
     this->bounds = bounds;
+    
 }
 
 // make x = y and y = x
@@ -157,26 +159,12 @@ inline __device__ void swapValues(float* x, float* y){
 
 __device__ const float BVH::AABB::RayCollide(const Raytracer::Ray ray){
     float tMinX = Raytracer::PlaneRayCollide(xSlab.plane1, ray);
-
-    if(tMinX == -1.0f){
-        return -1.0f;
-    }
+    float tMaxX = Raytracer::PlaneRayCollide(xSlab.plane2, ray);
 
     float tMinY = Raytracer::PlaneRayCollide(ySlab.plane1, ray);
-
-    if(tMinY == -1.0f){
-        return -1.0f;
-    }
+    float tMaxY = Raytracer::PlaneRayCollide(ySlab.plane2, ray);
 
     float tMinZ = Raytracer::PlaneRayCollide(zSlab.plane1, ray);
-
-    if(tMinZ == -1.0f){
-        return -1.0f;
-    }
-
-    // we know X,Y, and Z have valid hit points now
-    float tMaxX = Raytracer::PlaneRayCollide(xSlab.plane2, ray);
-    float tMaxY = Raytracer::PlaneRayCollide(ySlab.plane2, ray);
     float tMaxZ = Raytracer::PlaneRayCollide(zSlab.plane2, ray);
 
     // ensure that the mins are <= the maxs
@@ -191,11 +179,18 @@ __device__ const float BVH::AABB::RayCollide(const Raytracer::Ray ray){
     }
     
     // now check if the intervals overlap
-    float enterPoint = glm::min(glm::min(tMinX, tMinY), tMinZ);
-    float exitPoint = glm::max(glm::max(tMaxX, tMaxY), tMaxZ);
+    float enterPoint = glm::max(glm::max(tMinX, tMinY), tMinZ);
+    float exitPoint = glm::min(glm::min(tMaxX, tMaxY), tMaxZ);
     
-    float hit = enterPoint <= exitPoint ? enterPoint : exitPoint;
-    return hit;
+    if (enterPoint > exitPoint || exitPoint < 0.0f) {
+        return -1.0f;
+    }
+
+    if (enterPoint < 0.0f) {
+        return 0.0f;
+    }
+
+    return enterPoint;
 }
 
 glm::vec3 BVH::AABB::getLongestAxis(){

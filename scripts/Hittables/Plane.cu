@@ -1,4 +1,5 @@
 #include "../headers/Hittables/Plane.cuh"
+#include <cmath>
 
 // returns colision distance with plane with the ray
 __device__ float Raytracer::PlaneRayCollide(const Raytracer::Plane plane, const Raytracer::Ray ray){
@@ -7,12 +8,11 @@ __device__ float Raytracer::PlaneRayCollide(const Raytracer::Plane plane, const 
 
     if(denom == 0.0f){
         // degenerate, this is parallel to the plane
-        return -1;
+        float distanceToPlane = glm::dot(plane.anchor - ray.origin, plane.normal);
+        return distanceToPlane >= 0.0f ? -INFINITY : INFINITY;
     }
 
     float numerator = glm::dot(plane.anchor, plane.normal) - glm::dot(ray.origin, plane.normal);
 
-    float t = numerator / denom;
-
-    return t;
+    return numerator / denom;
 }

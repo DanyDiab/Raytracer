@@ -15,7 +15,9 @@ set(SCRIPTSDIR "${CMAKE_CURRENT_SOURCE_DIR}/scripts")
 set(CAMERA_RAYS_DIR "${SCRIPTSDIR}/CameraRays")
 set(HITTABLES_DIR "${SCRIPTSDIR}/Hittables")
 set(MISC_DIR "${SCRIPTSDIR}/Misc")
+set(SCENES_DIR "${SCRIPTSDIR}/Scenes")
 set(HEADERS_DIR "${SCRIPTSDIR}/headers")
+
 
 add_executable(Raytracer
     "${SCRIPTSDIR}/Main.cpp"
@@ -41,7 +43,9 @@ add_executable(Raytracer
     "${MISC_DIR}/CPUTimer.cpp"
     "${MISC_DIR}/GPUTimer.cu"
 
-
+    "${SCENES_DIR}/BunnyMirrorScene.cpp"
+    "${SCENES_DIR}/SceneLoader.cpp"
+    "${SCENES_DIR}/BVHTestScene.cpp"
 )
 set_target_properties(Raytracer PROPERTIES 
     CUDA_SEPARATE_COMPILATION ON

@@ -68,7 +68,8 @@ __device__ glm::vec3 RayHittableCollision(
     BVH::BVHNode* nodes){
     // invalid index
 
-    Raytracer::HitRecord hi = BVH::trace(ray, nodes);
+    Raytracer::HitRecord hi = BVH::trace(ray,nodes);
+
 
     if(hi.hitDistance < 0.0f){
         return skyColor;
@@ -87,18 +88,12 @@ __device__ glm::vec3 RayHittableCollision(
         glm::vec3 hitPoint = (ray.dir * hi.hitDistance) + ray.origin;
 
 
-        glm::vec4 scatterDirWithFlag = ray.determineScatterDirection(hi, state);
-        glm::vec3 rawScatterDir = scatterDirWithFlag;
-        float refractionFlag = scatterDirWithFlag.w;
+        ray.dir = ray.determineScatterDirection(hi, state);
 
-        ray.dir = rawScatterDir;
+        ray.origin = hitPoint + (ray.dir *.001f);
 
-        glm::vec3 nudgeDir = refractionFlag > 0 ? ray.dir : hi.normal;
-        ray.origin = hitPoint + (nudgeDir *.001f);
-
-        hi = BVH::trace(ray, nodes);
-
-        if (hi.hitDistance < 0.0f) {
+        hi = BVH::trace(ray,nodes);
+        if (hi.hitDistance < 0.001f) {
             incomingLight += skyColor * throughput;
             break;
         }
@@ -252,7 +247,7 @@ std::vector<glm::vec3> Camera::Render(const std::vector<Raytracer::Hittable> hit
     camInfo.up = transform.up();
     camInfo.width = width;
     camInfo.height = height;
-    camInfo.fov = 60.0f;
+    camInfo.fov = 90.0f;
     camInfo.projectionType = PERSPECTIVE;
     
     std::vector<float> progressData(samples);

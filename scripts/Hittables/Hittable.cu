@@ -24,12 +24,10 @@ namespace Raytracer {
     __device__ Raytracer::HitRecord Hittable::rayCollide(const Raytracer::Ray ray) const{
         // printf("Inside Hittable: %f", sphere.radius);
         Raytracer::HitRecord hi = {
-            .hitDistance = -1.0f,
-            .normal = glm::vec3(0),
+            .hitDistance = -1.0f
         };
 
         float distance;
-        glm::vec3 normal;
         switch(shapeType){
             case(SHAPE_SPHERE):{
                 distance = SphereRayCollide(shape.sphere, ray);
@@ -38,6 +36,7 @@ namespace Raytracer {
             }
             case(SHAPE_TRIANGLE):{
                 distance = TriangleRayCollide(shape.triangle, ray);
+                
                 break;
             }
             default:{
@@ -46,12 +45,7 @@ namespace Raytracer {
             }
         }
 
-        if(distance == -1.0f){
-            return hi;
-        }
-
         hi.hitDistance = distance;
-
         return hi;
     }
 

@@ -15,21 +15,26 @@ __device__ Raytracer::HitRecord Raytracer::Ray::RayIntersectShapes(Raytracer::Hi
     Raytracer::HitRecord closestRecord;
     closestRecord.hitDistance = -1.0f;
     Raytracer::Hittable closestShape;
+
+    bool hit = false;
     // found closer hit point
     for(int i = 0; i < numHittables; i++){
         Raytracer::Hittable shape = hittables[i];
         Raytracer::HitRecord rayHR = shape.rayCollide(*this);
+
         if(rayHR.hitDistance < -.999999f || rayHR.hitDistance < 0.001f) continue;
 
         // found better hit
         if((closestRecord.hitDistance == -1.0f) || rayHR.hitDistance < closestRecord.hitDistance){
+            hit = true;
+            
             closestShape = shape;
             closestRecord.hitDistance = rayHR.hitDistance;
             closestRecord.mat = shape.mat;
         }
     }
 
-    if (closestRecord.hitDistance != -1.0f) {
+    if (hit) {
         closestRecord.normal = closestShape.getShapeNormal(closestRecord.hitDistance, *this);
     }
 
@@ -105,7 +110,7 @@ __device__ glm::vec3 reflect(glm::vec3 incidentAngle, glm::vec3 normal){
 }
 
 
-__device__ glm::vec3 metallicScatterDir(glm::vec3 incidentAngle, glm::vec3 normal, float roughness, curandState_t* state){
+inline __device__ glm::vec3 metallicScatterDir(glm::vec3 incidentAngle, glm::vec3 normal, float roughness, curandState_t* state){
     glm::vec3 reflectDir = reflect(incidentAngle, normal);
     // add rand scaled by roughness
     glm::vec3 fuzz = PRNG::randomUnitVec(state) * roughness;
@@ -114,7 +119,7 @@ __device__ glm::vec3 metallicScatterDir(glm::vec3 incidentAngle, glm::vec3 norma
     return dir;
 }
 
-__device__ float shlickReflectance(float IOR, float cos){
+inline __device__ float shlickReflectance(float IOR, float cos){
     
      
     float clampedCos = glm::clamp(cos, 0.0f, 1.0f);
@@ -127,7 +132,7 @@ __device__ float shlickReflectance(float IOR, float cos){
 
 // IOR = index of refraction
 // flag indicaets if refraction was allowed or not
-__device__ glm::vec4 dielctricScatterDir(float IOR, glm::vec3 incidentAngle, glm::vec3 normal, curandState_t* state){
+inline __device__ glm::vec3 dielctricScatterDir(float IOR, glm::vec3 incidentAngle, glm::vec3 normal, curandState_t* state){
         
     float rawCos = glm::dot(incidentAngle, normal);
 
@@ -159,49 +164,32 @@ __device__ glm::vec4 dielctricScatterDir(float IOR, glm::vec3 incidentAngle, glm
     if(shouldReflect){
         // must reflect
         glm::vec3 newDir = reflect(incidentAngle, correctedNormal);
-        return glm::vec4(newDir,-1.0);
+        return newDir;
     }
 
     glm::vec3 parallel = -glm::sqrt(glm::abs(k)) * correctedNormal;
-
     glm::vec3 refractedDir = parallel + perp;
-
-    glm::vec4 refractWithFlag = glm::vec4(refractedDir, 1.0);
-
-    return refractWithFlag;
+    return refractedDir;
 }
 
-// first 3 components = dir
-// last component is a flag that indicates if it was a refraction
-// if last component > 0 = refraction happened
-// else no refraction
-// flag is used to determine which way to nudge the origin of the new ray
-__device__ glm::vec4 Raytracer::Ray::determineScatterDirection(Raytracer::HitRecord record, curandState_t* state){
+__device__ glm::vec3 Raytracer::Ray::determineScatterDirection(Raytracer::HitRecord record, curandState_t* state){
     Material mat = record.mat;
-
-    float metallic = mat.metallic;
 
     float randT = PRNG::randFloat(state);
 
-    float transmission = mat.transmission;
-
-    if(randT < transmission){
+    if(randT <  mat.transmission){
         // dielectric
-        float IOR = mat.IOR;
-        glm::vec4 refractionWithFlag = dielctricScatterDir(IOR, this->dir, record.normal, state);
-        return refractionWithFlag;
+        return dielctricScatterDir(mat.IOR, this->dir, record.normal, state);
     }
 
-    bool metallicScatter = randT < metallic;
+    bool metallicScatter = randT <  mat.metallic;
 
     if(metallicScatter){
         float roughness = mat.roughness;
-        glm::vec3 dir = metallicScatterDir(this->dir,record.normal,roughness,state);
-        return glm::vec4(glm::normalize(dir), -1.0f);
+        return metallicScatterDir(this->dir,record.normal,roughness,state);
     }
     else{
-        glm::vec3 dir = diffuseScatterDir(record.normal, state);
-        return glm::vec4(glm::normalize(dir), -1.0f);
+        return diffuseScatterDir(record.normal, state);
     }
 }
 
