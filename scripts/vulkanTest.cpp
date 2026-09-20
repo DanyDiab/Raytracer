@@ -43,24 +43,28 @@ struct QueueFamilyIndicies {
 
 GLFWwindow* createWindow(){
     GLFWwindow *window;
-    if (!glfwInit()) return window;
+    if (!glfwInit()){
+        std::cerr << "glfw init failed" << "\n";
+        return window;
+    }
+
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     window = glfwCreateWindow(960, 540, "RayTracer", NULL, NULL);
 
     if (!window){
         glfwTerminate();
         return nullptr;
     }
-    
+
     glfwMakeContextCurrent(window);
 
     return window;
 }
 
-VkSurfaceKHR createSurface(VkInstance instance){
-    GLFWwindow* window = createWindow();
+VkSurfaceKHR createSurface(VkInstance instance, GLFWwindow* window){
 
     VkSurfaceKHR surface{};
-    
+
     int supportRes = glfwVulkanSupported();
     if(supportRes == GLFW_FALSE){
         std::cerr << "glfw vulkan not supported :(";
@@ -68,6 +72,7 @@ VkSurfaceKHR createSurface(VkInstance instance){
 
     uint32_t count;
     const char** requiredRes = glfwGetRequiredInstanceExtensions(&count);
+
     if(requiredRes == nullptr){
         std::cerr << "the required res are null\n";
     }
@@ -75,10 +80,12 @@ VkSurfaceKHR createSurface(VkInstance instance){
     if(count == 0){
         std::cerr << "the count of required instance extensions is 0? why?\n";
     }
+
     VkResult createRes = glfwCreateWindowSurface(instance, window, nullptr, &surface);
 
     if(createRes != VK_SUCCESS){
-        std::cerr << "somthing went weong with window surface creation using GLFW " << supportRes; 
+        std::cerr << "somthing went weong with window surface creation using GLFW " << "\n";
+        printf("%d\n", createRes);
     }
 
     return surface;
@@ -100,7 +107,7 @@ QueueFamilyIndicies findQueueFam(VkPhysicalDevice device, VkSurfaceKHR surface){
     for(const auto& properties : queueFamilies){
 
         uint32_t queueFlags = properties.queueFlags;
-        
+
         // can we do graphics? aka buffers etc...
         if(queueFlags & VK_QUEUE_GRAPHICS_BIT){
             QueueFamilyIndicies.graphicsFamily = i;
@@ -113,7 +120,7 @@ QueueFamilyIndicies findQueueFam(VkPhysicalDevice device, VkSurfaceKHR surface){
         if(presentSupport){
             QueueFamilyIndicies.presentFamily = i;
         }
-        
+
         i++;
     }
 
@@ -122,7 +129,7 @@ QueueFamilyIndicies findQueueFam(VkPhysicalDevice device, VkSurfaceKHR surface){
 
 bool isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface){
     QueueFamilyIndicies famIndices = findQueueFam(device, surface);
-    
+
     return  famIndices.hasAllQueues();
 }
 
@@ -152,7 +159,7 @@ GPU_SCORE rateDeviceSuitability(VkPhysicalDevice device, VkSurfaceKHR surface){
     if(famIndices.graphicsFamily.value() == famIndices.presentFamily.value()){
         score.score += 500;
     }
-    
+
     score.name = deviceProperties.deviceName;
 
     return score;
@@ -164,7 +171,7 @@ VkPhysicalDevice pickPhysicalDevice(VkInstance instance, VkSurfaceKHR surface){
 
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
-    
+
     if(deviceCount == 0){
         std::cerr << "No GPUS THAT WORK WITH VULKAN FOUND BITCH! GET A BETTER GPU LOSER!";
         return physicalDevice;
@@ -213,7 +220,7 @@ DeviceQueue createLogicalDevice(VkPhysicalDevice pickedDevice, VkSurfaceKHR surf
 
         queueCreateInfo.pQueuePriorities = &queuePriority;
 
-        
+
         queueCreateinfos.push_back(queueCreateInfo);
     }
 
@@ -239,14 +246,14 @@ DeviceQueue createLogicalDevice(VkPhysicalDevice pickedDevice, VkSurfaceKHR surf
     }
 
     DeviceQueue dQueue{};
-    
-    
+
+
     VkQueue graphicQueue;
     vkGetDeviceQueue(logicalDevice, famIndices.graphicsFamily.value(),0, &graphicQueue);
     dQueue.graphicsQueue = graphicQueue;
-    
+
     VkQueue presentQueue;
-    vkGetDeviceQueue(logicalDevice, famIndices.presentFamily.value(),0, &presentQueue);\
+    vkGetDeviceQueue(logicalDevice, famIndices.presentFamily.value(),0, &presentQueue);
     dQueue.presentQueue = presentQueue;
 
     dQueue.device = logicalDevice;
@@ -259,8 +266,14 @@ VkInstance createInstance(){
     VkInstanceCreateInfo createInfo{};
 
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    
-    VkInstance instance = VK_NULL_HANDLE; 
+
+    uint32_t count;
+    const char** requiredRes = glfwGetRequiredInstanceExtensions(&count);
+
+    createInfo.enabledExtensionCount = count;
+    createInfo.ppEnabledExtensionNames = requiredRes;
+
+    VkInstance instance = VK_NULL_HANDLE;
 
     VkResult res = vkCreateInstance(&createInfo, nullptr, &instance);
 
@@ -272,8 +285,10 @@ VkInstance createInstance(){
 }
 
 VulkanObjs initVulkan(){
+    GLFWwindow* window = createWindow();
+
     VkInstance instance = createInstance();
-    VkSurfaceKHR surface = createSurface(instance);
+    VkSurfaceKHR surface = createSurface(instance, window);
 
     VkPhysicalDevice Pdevice = pickPhysicalDevice(instance, surface);
 
@@ -286,6 +301,7 @@ VulkanObjs initVulkan(){
     objs.graphicQueue = dq.graphicsQueue;
     objs.instance = instance;
 
+    return objs;
 }
 
 
