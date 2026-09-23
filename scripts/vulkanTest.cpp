@@ -11,6 +11,10 @@
 
 // eventually make this a class?
 
+const std::vector<const char*> deviceExtensions = {
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME
+};
+
 struct VulkanObjs{
     VkInstance instance;
     VkDevice Ldevice;
@@ -40,6 +44,11 @@ struct QueueFamilyIndicies {
     }
 };
 
+struct SwapChainSupportDetails {
+    VkSurfaceCapabilitiesKHR capabilities;
+    std::vector<VkSurfaceFormatKHR> formats;
+    std::vector<VkPresentModeKHR> presentModes;
+};
 
 GLFWwindow* createWindow(){
     GLFWwindow *window;
@@ -127,16 +136,63 @@ QueueFamilyIndicies findQueueFam(VkPhysicalDevice device, VkSurfaceKHR surface){
     return QueueFamilyIndicies;
 }
 
+bool checkDeviceExtensionSupport(VkPhysicalDevice device){
+    uint32_t extensionCount;
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+    std::vector<VkExtensionProperties> allExtensions = std::vector<VkExtensionProperties>(extensionCount);
+
+   vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, allExtensions.data());
+
+   std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
+
+   for(const auto& extension : allExtensions){
+       requiredExtensions.erase(extension.extensionName);
+   }
+
+   // if set empty, we have all extensions
+   return requiredExtensions.empty();
+}
+SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface){
+    SwapChainSupportDetails details;
+
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
+
+    uint32_t formatCount;
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount,nullptr);
+
+    if(formatCount != 0){
+        details.formats.resize(formatCount);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface ,&formatCount, details.formats.data());
+    }
+
+    uint32_t modeCount;
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface,&modeCount, nullptr);
+
+    if(modeCount != 0){
+        details.presentModes.resize(modeCount);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface,&modeCount, details.presentModes.data());
+    }
+
+    return details;
+}
+
 bool isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface){
     QueueFamilyIndicies famIndices = findQueueFam(device, surface);
 
-    return  famIndices.hasAllQueues();
+    bool ExtensionsSupported = checkDeviceExtensionSupport(device);
+
+    bool swapChainAdequate = false;
+
+    if(ExtensionsSupported){
+        SwapChainSupportDetails scDetails = querySwapChainSupport(device, surface);
+        swapChainAdequate = !scDetails.formats.empty() && !scDetails.presentModes.empty();
+    }
+
+    return  famIndices.hasAllQueues() && swapChainAdequate && ExtensionsSupported;
 }
 
 
 GPU_SCORE rateDeviceSuitability(VkPhysicalDevice device, VkSurfaceKHR surface){
-
-
     VkPhysicalDeviceProperties deviceProperties;
     VkPhysicalDeviceFeatures deviceFeatures;
 
@@ -145,7 +201,6 @@ GPU_SCORE rateDeviceSuitability(VkPhysicalDevice device, VkSurfaceKHR surface){
 
     GPU_SCORE score;
     score.score = 0;
-
 
     if(deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU){
         score.score += 1000;
@@ -201,6 +256,7 @@ VkPhysicalDevice pickPhysicalDevice(VkInstance instance, VkSurfaceKHR surface){
 }
 
 
+
 DeviceQueue createLogicalDevice(VkPhysicalDevice pickedDevice, VkSurfaceKHR surface){
 
     QueueFamilyIndicies famIndices = findQueueFam(pickedDevice, surface);
@@ -235,7 +291,9 @@ DeviceQueue createLogicalDevice(VkPhysicalDevice pickedDevice, VkSurfaceKHR surf
 
     createInfo.pEnabledFeatures = &deviceFeatures;
 
-    createInfo.enabledExtensionCount = 0;
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
+    createInfo.ppEnabledExtensionNames = deviceExtensions.data();
+
     createInfo.enabledLayerCount = 0;
 
     VkDevice logicalDevice;

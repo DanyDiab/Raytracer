@@ -12,6 +12,7 @@ namespace Raytracer {
         this->sphere = sphere;
     }
 
+
     __device__ Raytracer::HitRecord Hittable::rayCollide(const Raytracer::Ray ray) const{
         // printf("Inside Hittable: %f", sphere.radius);
         Raytracer::HitRecord hi = {
