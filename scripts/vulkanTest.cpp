@@ -1,6 +1,8 @@
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
+#include <limits>
 #include <optional>
 #include <set>
 #include <vector>
@@ -174,6 +176,91 @@ SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device, VkSurface
     }
 
     return details;
+}
+
+VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats){
+    for(const auto& format : availableFormats){
+        VkFormat colorLayout = format.format;
+        VkColorSpaceKHR colorSpace = format.colorSpace;
+
+        if(colorLayout == VK_FORMAT_R8G8B8A8_SRGB && colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR){
+            return format;
+        }
+    }
+    // the format we wanted was not specified, and so we can just take the first one and pray its good enough lol
+    return  availableFormats.at(0);
+}
+
+VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availableModes){
+    for(const auto& mode : availableModes){
+        // if triple buffering is available
+        if(mode == VK_PRESENT_MODE_MAILBOX_KHR){
+            return mode;
+        }
+    }
+    // fallback; all GPUs support double buffering
+    return VK_PRESENT_MODE_FIFO_KHR;
+}
+
+VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* window){
+    // resolution and width/height match
+    if(capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()){
+        return capabilities.currentExtent;
+    }
+    // dont match, pick best match
+
+    int width, height;
+
+    glfwGetFramebufferSize(window, &width, &height);
+
+    VkExtent2D actualExtent = {
+        static_cast<uint32_t>(width),
+        static_cast<uint32_t>(height)
+    };
+
+    //clamp between min anbd max extents
+    actualExtent.width = std::clamp(
+        actualExtent.width,
+        capabilities.minImageExtent.width,
+        capabilities.maxImageExtent.width
+    );
+
+    actualExtent.height = std::clamp(
+        actualExtent.height,
+        capabilities.minImageExtent.height,
+        capabilities.maxImageExtent.height
+    );
+
+    return actualExtent;
+}
+
+void createSwapChain(GLFWwindow* window, VkPhysicalDevice device, VkSurfaceKHR surface){
+    SwapChainSupportDetails scDetails = querySwapChainSupport(device, surface);
+    VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(scDetails.formats);
+    VkPresentModeKHR presentMode = chooseSwapPresentMode(scDetails.presentModes);
+    VkExtent2D extent = chooseSwapExtent(scDetails.capabilities, window);
+
+    // pick hopw many images in the swap chain
+    uint32_t imageCount = scDetails.capabilities.minImageCount + 1;
+
+    // if we exceeded max
+    // NOTE maxImageCount == 0 means no max
+    if(scDetails.capabilities.maxImageCount > 0 && imageCount > scDetails.capabilities.maxImageCount){
+        imageCount = scDetails.capabilities.maxImageCount;
+    }
+
+    VkSwapchainCreateInfoKHR createInfo;
+    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    createInfo.surface = surface;
+    createInfo.minImageCount = imageCount;
+    createInfo.imageFormat = surfaceFormat.format;
+    createInfo.imageColorSpace = surfaceFormat.colorSpace;
+    createInfo.imageExtent = extent;
+    createInfo.imageArrayLayers = 1;
+    // we are rendering already, so this likely needs to be swapped to VK_IMAGE_USAGE_TRANSFER_DST_BIT
+    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+
 }
 
 bool isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface){
