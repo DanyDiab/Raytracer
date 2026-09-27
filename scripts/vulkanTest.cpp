@@ -5,6 +5,7 @@
 #include <limits>
 #include <optional>
 #include <set>
+#include <sys/types.h>
 #include <vector>
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_core.h>
@@ -22,6 +23,7 @@ struct VulkanObjs{
     VkDevice Ldevice;
     VkQueue graphicQueue;
     VkSurfaceKHR surface;
+    VkSwapchainKHR swapChain;
 };
 
 struct DeviceQueue{
@@ -50,6 +52,13 @@ struct SwapChainSupportDetails {
     VkSurfaceCapabilitiesKHR capabilities;
     std::vector<VkSurfaceFormatKHR> formats;
     std::vector<VkPresentModeKHR> presentModes;
+};
+
+struct SwapChainImages{
+    VkSwapchainKHR swapChain;
+    std::vector<VkImage> images;
+    VkFormat swapChainImageFormat;
+    VkExtent2D swapChainExtent;
 };
 
 GLFWwindow* createWindow(){
@@ -234,8 +243,8 @@ VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwi
     return actualExtent;
 }
 
-void createSwapChain(GLFWwindow* window, VkPhysicalDevice device, VkSurfaceKHR surface){
-    SwapChainSupportDetails scDetails = querySwapChainSupport(device, surface);
+SwapChainImages createSwapChain(GLFWwindow* window, VkPhysicalDevice pDevice, VkDevice lDevice, VkSurfaceKHR surface){
+    SwapChainSupportDetails scDetails = querySwapChainSupport(pDevice, surface);
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(scDetails.formats);
     VkPresentModeKHR presentMode = chooseSwapPresentMode(scDetails.presentModes);
     VkExtent2D extent = chooseSwapExtent(scDetails.capabilities, window);
@@ -260,7 +269,49 @@ void createSwapChain(GLFWwindow* window, VkPhysicalDevice device, VkSurfaceKHR s
     // we are rendering already, so this likely needs to be swapped to VK_IMAGE_USAGE_TRANSFER_DST_BIT
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
+    QueueFamilyIndicies indices = findQueueFam(pDevice, surface);
 
+    uint32_t indiciesArr[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+
+    if(indices.graphicsFamily != indices.presentFamily){
+        createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+        createInfo.queueFamilyIndexCount = 2;
+        createInfo.pQueueFamilyIndices = indiciesArr;
+    }
+    else{
+        createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        // these are optional
+        createInfo.queueFamilyIndexCount = 0;
+        createInfo.pQueueFamilyIndices = nullptr;
+    }
+    // apply a transform to all images in swap chain
+    createInfo.preTransform = scDetails.capabilities.currentTransform;
+    //ignore alpha channel for now
+    createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+
+    createInfo.presentMode = presentMode;
+    createInfo.clipped = VK_TRUE;
+
+    // this is used if we create a new swap chain, aka if the old swap chain is invalid, maybe due to window resizing
+    createInfo.oldSwapchain = VK_NULL_HANDLE;
+
+    VkSwapchainKHR swapChain;
+    VkResult createRes = vkCreateSwapchainKHR(lDevice, &createInfo, nullptr, &swapChain);
+    if(createRes != VK_SUCCESS){
+        std::cerr << "something went wrong while creating swap chain " << createRes;
+    }
+    SwapChainImages scImg;
+    scImg.swapChain = swapChain;
+
+    // grab images
+    vkGetSwapchainImagesKHR(lDevice, swapChain, &imageCount, nullptr);
+    scImg.images.resize(imageCount);
+    vkGetSwapchainImagesKHR(lDevice, swapChain, &imageCount, scImg.images.data());
+
+    scImg.swapChainExtent = extent;
+    scImg.swapChainImageFormat = surfaceFormat.format;
+
+    return scImg;
 }
 
 bool isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface){
@@ -439,19 +490,21 @@ VulkanObjs initVulkan(){
 
     DeviceQueue dq = createLogicalDevice(Pdevice, surface);
 
+    SwapChainImages swapChainImgs = createSwapChain(window, Pdevice, dq.device, surface);
+
     VulkanObjs objs{};
 
     objs.surface = surface;
     objs.Ldevice = dq.device;
     objs.graphicQueue = dq.graphicsQueue;
     objs.instance = instance;
-
+    objs.swapChain = swapChainImgs.swapChain;
     return objs;
 }
 
 
 void cleanUp(VulkanObjs vkObjs){
-
+    vkDestroySwapchainKHR(vkObjs.Ldevice, vkObjs.swapChain, nullptr);
     vkDestroyDevice(vkObjs.Ldevice, nullptr);
     vkDestroySurfaceKHR(vkObjs.instance, vkObjs.surface, nullptr);
     vkDestroyInstance(vkObjs.instance, nullptr);
