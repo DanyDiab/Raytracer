@@ -37,7 +37,7 @@ struct SwapChainSupportDetails {
 
 struct SwapChainInfo{
     std::vector<VkImage> images;
-    std::vector<VkImageView> imageViews;
+    std::vector<VkImageView> Views;
     VkExtent2D swapChainExtent;
     VkFormat swapChainImageFormat;
 };
@@ -45,12 +45,13 @@ struct SwapChainInfo{
 
 class Vulkan{
     public:
+        GLFWwindow* window;
+
         Vulkan();
         ~Vulkan();
     private:
         // vars
         VulkanObjs vkObjs;
-        GLFWwindow* window;
 
         VkQueue graphicsQueue;
         VkQueue presentQueue;

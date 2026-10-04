@@ -26,6 +26,7 @@ const std::vector<const char*> deviceExtensions = {
 
 void Vulkan::createWindow(){
     GLFWwindow *window;
+    glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
     if (!glfwInit()){
         std::string err =  "ERROR: glfw init failed\n";
         throw err;
@@ -33,14 +34,12 @@ void Vulkan::createWindow(){
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     window = glfwCreateWindow(960, 540, "RayTracer", NULL, NULL);
-
     if (!window){
         glfwTerminate();
         std::string err = "ERROR: GLFW createWindow Failed";
         throw err;
     }
 
-    glfwMakeContextCurrent(window);
 
     this->window = window;
 }
@@ -387,7 +386,7 @@ void Vulkan::createLogicalDevice(){
     for(const auto& queue : uniqueQueues){
         VkDeviceQueueCreateInfo queueCreateInfo{};
         queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queueCreateInfo.queueFamilyIndex = famIndices.graphicsFamily.value();
+        queueCreateInfo.queueFamilyIndex = queue;
         queueCreateInfo.queueCount = 1;
 
         queueCreateInfo.pQueuePriorities = &queuePriority;
@@ -479,6 +478,10 @@ Vulkan::~Vulkan(){
 
 int main(){
     Vulkan vk;
+
+    while (!glfwWindowShouldClose(vk.window)) {
+        glfwPollEvents();
+    }
     return 0;
 
 }
