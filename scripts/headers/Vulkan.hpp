@@ -65,7 +65,8 @@ class Vulkan{
         void createSwapChain();
 
         // HELPER FUNCTIONS
-        SwapChainSupportDetails querySwapChainSupport();
+
+        SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice pDeviceToCheck);
         VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
         VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availableModes);
 

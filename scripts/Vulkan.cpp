@@ -74,6 +74,8 @@ void Vulkan::createSurface(){
         std::cerr << "somthing went weong with window surface creation using GLFW " << "\n";
         printf("%d\n", createRes);
     }
+
+    vkObjs.surface = surface;
 }
 
 
@@ -128,28 +130,36 @@ bool Vulkan::checkDeviceExtensionSupport(VkPhysicalDevice pDeviceToCheck){
    // if set empty, we have all extensions
    return requiredExtensions.empty();
 }
-SwapChainSupportDetails Vulkan::querySwapChainSupport(){
+
+SwapChainSupportDetails Vulkan::querySwapChainSupport(VkPhysicalDevice pDeviceToCheck){
     SwapChainSupportDetails details;
 
-    VkPhysicalDevice pDevice = vkObjs.Pdevice;
     VkSurfaceKHR surface = vkObjs.surface;
 
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(pDevice, surface, &details.capabilities);
+    VkResult res = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(pDeviceToCheck, surface, &details.capabilities);
+
+    if(res != VK_SUCCESS){
+        std::cerr << "ERROR: SwapChain Get Surface Capabilities " << res;
+    }
 
     uint32_t formatCount;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(pDevice, surface, &formatCount,nullptr);
+    VkResult res1 = vkGetPhysicalDeviceSurfaceFormatsKHR(pDeviceToCheck, surface, &formatCount,nullptr);
+
+    if(res1 != VK_SUCCESS){
+        std::cerr << "ERROR: SwapChain Get Surface Formats " << res;
+    }
 
     if(formatCount != 0){
         details.formats.resize(formatCount);
-        vkGetPhysicalDeviceSurfaceFormatsKHR(pDevice, surface ,&formatCount, details.formats.data());
+        vkGetPhysicalDeviceSurfaceFormatsKHR(pDeviceToCheck, surface ,&formatCount, details.formats.data());
     }
 
     uint32_t modeCount;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(pDevice, surface,&modeCount, nullptr);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(pDeviceToCheck, surface,&modeCount, nullptr);
 
     if(modeCount != 0){
         details.presentModes.resize(modeCount);
-        vkGetPhysicalDeviceSurfacePresentModesKHR(pDevice, surface,&modeCount, details.presentModes.data());
+        vkGetPhysicalDeviceSurfacePresentModesKHR(pDeviceToCheck, surface,&modeCount, details.presentModes.data());
     }
 
     return details;
@@ -212,7 +222,7 @@ VkExtent2D Vulkan::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities
 }
 
 void Vulkan::createSwapChain(){
-    SwapChainSupportDetails scDetails = querySwapChainSupport();
+    SwapChainSupportDetails scDetails = querySwapChainSupport(vkObjs.Pdevice);
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(scDetails.formats);
     VkPresentModeKHR presentMode = chooseSwapPresentMode(scDetails.presentModes);
     VkExtent2D extent = chooseSwapExtent(scDetails.capabilities, window);
@@ -276,6 +286,8 @@ void Vulkan::createSwapChain(){
 
     scInfo.swapChainExtent = extent;
     scInfo.swapChainImageFormat = surfaceFormat.format;
+
+    vkObjs.swapChain = swapChain;
 }
 
 
@@ -287,7 +299,7 @@ bool Vulkan::isDeviceSuitable(VkPhysicalDevice pDeviceToCheck){
     bool swapChainAdequate = false;
 
     if(ExtensionsSupported){
-        SwapChainSupportDetails scDetails = querySwapChainSupport();
+        SwapChainSupportDetails scDetails = querySwapChainSupport(pDeviceToCheck);
         swapChainAdequate = !scDetails.formats.empty() && !scDetails.presentModes.empty();
     }
 
@@ -344,7 +356,7 @@ void Vulkan::pickPhysicalDevice(){
 
         GPU_SCORE deviceScore = rateDeviceSuitability(device);
 
-        if(deviceScore.score > bestScore.score){
+        if(deviceScore.score >= bestScore.score){
             bestScore = deviceScore;
             physicalDevice = device;
         }
@@ -353,9 +365,10 @@ void Vulkan::pickPhysicalDevice(){
     std::cout << "picked GPU " << bestScore.name;
 
     if(physicalDevice == VK_NULL_HANDLE){
-        std::cerr << "NO SUITABLE GPU | WORKS WITH VULKAN, but daddy wants M O R E requirements";
+        std::cerr <<  "NO SUITABLE GPU | WORKS WITH VULKAN, but daddy wants M O R E requirements";
     }
 
+    vkObjs.Pdevice = physicalDevice;
 }
 
 
