@@ -56,6 +56,14 @@ class Vulkan{
         VkQueue graphicsQueue;
         VkQueue presentQueue;
 
+        const std::vector<const char*> deviceExtensions = {
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME
+        };
+
+        const std::vector<const char*> validationLayers = {
+            "VK_LAYER_KHRONOS_validation"
+        };
+
         SwapChainInfo scInfo;
         // MAIN FUNCTIONS
         void createWindow();
@@ -74,6 +82,9 @@ class Vulkan{
         VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* window);
 
         bool checkDeviceExtensionSupport(VkPhysicalDevice pDeviceToCheck);
+        bool checkValidationLayerSupport();
+        std::vector<const char*> getRequiredExtenstions();
+
         bool isDeviceSuitable(VkPhysicalDevice pDeviceToCheck);
         QueueFamilyIndicies findQueueFam(VkPhysicalDevice pDevice);
         GPU_SCORE rateDeviceSuitability(VkPhysicalDevice pDevice);

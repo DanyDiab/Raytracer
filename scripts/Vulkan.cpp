@@ -1,9 +1,11 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <iostream>
 #include <limits>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <sys/types.h>
 #include <vector>
@@ -19,9 +21,11 @@
 
 // eventually make this a class?
 
-const std::vector<const char*> deviceExtensions = {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME
-};
+#ifdef NDEBUG
+    const bool enableValidationLayers = false;
+#else
+    const bool enableValidationLayers = true;
+#endif
 
 
 void Vulkan::createWindow(){
@@ -434,15 +438,27 @@ void createImageViews(){
 }
 
 void Vulkan::createInstance(){
+
+    if(enableValidationLayers && !checkValidationLayerSupport()){
+        throw std::runtime_error("validation layers requested, but not available");
+    }
+
     VkInstanceCreateInfo createInfo{};
 
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 
-    uint32_t count;
-    const char** requiredRes = glfwGetRequiredInstanceExtensions(&count);
+    std::vector<const char*> extensions = getRequiredExtenstions();
 
-    createInfo.enabledExtensionCount = count;
-    createInfo.ppEnabledExtensionNames = requiredRes;
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+    createInfo.ppEnabledExtensionNames = extensions.data();
+
+    if(enableValidationLayers){
+        createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+        createInfo.ppEnabledLayerNames = validationLayers.data();
+    }
+    else{
+        createInfo.enabledLayerCount = 0;
+    }
 
     VkInstance instance = VK_NULL_HANDLE;
 
@@ -454,6 +470,50 @@ void Vulkan::createInstance(){
     }
 
     vkObjs.instance = instance;
+}
+
+std::vector<const char*> Vulkan::getRequiredExtenstions(){
+    uint32_t glfwExtensionsCount = 0;
+
+    const char** glfwExtensions;
+
+    glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionsCount);
+
+    std::vector<const char*>extensions(glfwExtensions, glfwExtensions + glfwExtensionsCount);
+
+    if(enableValidationLayers){
+        extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    }
+
+    return extensions;
+}
+
+bool Vulkan::checkValidationLayerSupport(){
+    uint32_t layerCount;
+
+    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+
+   std::vector<VkLayerProperties> availableLayers(layerCount);
+
+    vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+    for(const auto& layerName : validationLayers){
+
+        bool foundLayer = false;
+
+        for(const auto& layerProperties : availableLayers){
+            if(strcmp(layerName, layerProperties.layerName) == 0){
+                foundLayer = true;
+                break;
+            }
+        }
+
+        if(!foundLayer){
+            return false;
+        }
+    }
+
+    return true;
 }
 
 
@@ -475,6 +535,8 @@ Vulkan::~Vulkan(){
     vkDestroySurfaceKHR(vkObjs.instance, vkObjs.surface, nullptr);
     vkDestroyInstance(vkObjs.instance, nullptr);
 }
+
+
 
 int main(){
     Vulkan vk;
