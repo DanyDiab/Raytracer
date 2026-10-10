@@ -1,4 +1,5 @@
 #include <GLFW/glfw3.h>
+#include <vulkan/vk_platform.h>
 #include <vulkan/vulkan.h>
 #include <optional>
 #include <vector>
@@ -7,6 +8,7 @@
 
 struct VulkanObjs{
     VkInstance instance;
+    VkDebugUtilsMessengerEXT debugMessenger;
     VkDevice Ldevice;
     VkPhysicalDevice Pdevice;
     VkQueue graphicQueue;
@@ -42,6 +44,10 @@ struct SwapChainInfo{
     VkFormat swapChainImageFormat;
 };
 
+VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+    const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger);
+
+void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator);
 
 class Vulkan{
     public:
@@ -88,4 +94,18 @@ class Vulkan{
         bool isDeviceSuitable(VkPhysicalDevice pDeviceToCheck);
         QueueFamilyIndicies findQueueFam(VkPhysicalDevice pDevice);
         GPU_SCORE rateDeviceSuitability(VkPhysicalDevice pDevice);
+
+        void setupDebugMessenger();
+
+        // STATIC FUNCTIONS
+
+        static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+            VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+            VkDebugUtilsMessageTypeFlagsEXT messageType,
+            const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+            void* pUserData
+        );
+
+
+
 };
