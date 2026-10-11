@@ -617,7 +617,7 @@ Vulkan::Vulkan(){
     createLogicalDevice();
 
     createSwapChain();
-
+    createImageViews();
 }
 
 Vulkan::~Vulkan(){
