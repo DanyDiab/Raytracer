@@ -39,7 +39,7 @@ struct SwapChainSupportDetails {
 
 struct SwapChainInfo{
     std::vector<VkImage> images;
-    std::vector<VkImageView> Views;
+    std::vector<VkImageView> views;
     VkExtent2D swapChainExtent;
     VkFormat swapChainImageFormat;
 };
@@ -78,6 +78,7 @@ class Vulkan{
         void pickPhysicalDevice();
         void createLogicalDevice();
         void createSwapChain();
+        void createImageViews();
 
         // HELPER FUNCTIONS
 
