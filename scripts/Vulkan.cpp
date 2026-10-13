@@ -424,11 +424,11 @@ void Vulkan::createLogicalDevice(){
 
     VkQueue graphicQueue;
     vkGetDeviceQueue(logicalDevice, famIndices.graphicsFamily.value(),0, &graphicQueue);
-    this->graphicsQueue = graphicQueue;
+    vkObjs.graphicQueue = graphicQueue;
 
     VkQueue presentQueue;
     vkGetDeviceQueue(logicalDevice, famIndices.presentFamily.value(),0, &presentQueue);
-    this->presentQueue = presentQueue;
+    vkObjs.presentQueue = presentQueue;
 
     vkObjs.Ldevice = logicalDevice;
 }

@@ -6,16 +6,8 @@
 #include <string>
 #include <vulkan/vulkan_core.h>
 
-struct VulkanObjs{
-    VkInstance instance;
-    VkDebugUtilsMessengerEXT debugMessenger;
-    VkDevice Ldevice;
-    VkPhysicalDevice Pdevice;
-    VkQueue graphicQueue;
-    VkSurfaceKHR surface;
-    VkSwapchainKHR swapChain;
-};
-
+#include "VulkanContext.hpp"
+#include "../../shaders/ShaderLoader.hpp"
 
 struct GPU_SCORE{
     int score;
@@ -57,10 +49,9 @@ class Vulkan{
         ~Vulkan();
     private:
         // vars
-        VulkanObjs vkObjs;
+        VulkanContext vkObjs;
 
-        VkQueue graphicsQueue;
-        VkQueue presentQueue;
+        ShaderLoader shaderLoader{vkObjs};
 
         const std::vector<const char*> deviceExtensions = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME
