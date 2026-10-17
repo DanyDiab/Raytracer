@@ -70,6 +70,7 @@ class Vulkan{
         void createLogicalDevice();
         void createSwapChain();
         void createImageViews();
+        void createGraphicsPipeline();
 
         // HELPER FUNCTIONS
 

@@ -14,7 +14,10 @@ class ShaderLoader{
 
         VkShaderModule createShaderModule(const std::vector<char>& code);
 
+        VkPipelineShaderStageCreateInfo createShaderStage(VkShaderModule module, VkShaderStageFlagBits stage);
+
     private:
         VulkanContext& ctx;
         std::vector<VkShaderModule> loadedModules;
+        std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 };

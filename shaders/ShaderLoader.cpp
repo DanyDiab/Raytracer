@@ -54,6 +54,19 @@ VkShaderModule ShaderLoader::createShaderModule(const std::vector<char>& code){
     return shaderModule;
 }
 
+VkPipelineShaderStageCreateInfo ShaderLoader::createShaderStage(VkShaderModule module, VkShaderStageFlagBits stage){
+    VkPipelineShaderStageCreateInfo shaderStageInfo{};
+
+    shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    shaderStageInfo.stage = stage;
+    shaderStageInfo.module = module;
+    shaderStageInfo.pName = "main";
+
+    shaderStages.push_back(shaderStageInfo);
+
+    return shaderStageInfo;
+}
+
 
 ShaderLoader::~ShaderLoader(){
     for(auto module : loadedModules){
