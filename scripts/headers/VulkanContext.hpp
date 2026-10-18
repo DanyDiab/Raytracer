@@ -11,7 +11,8 @@ struct VulkanContext{
     VkQueue presentQueue;
     VkSurfaceKHR surface;
     VkSwapchainKHR swapChain;
-    VkPipelineLayout pipelineLayout;
     VkRenderPass renderPass;
+    VkPipelineLayout pipelineLayout;
+    VkPipeline graphicsPipeline;
 
 };

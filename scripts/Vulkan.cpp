@@ -619,6 +619,7 @@ void Vulkan::createGraphicsPipeline(){
     VkPipelineShaderStageCreateInfo vertShaderStage = loader.createShaderStage(vertModule, VK_SHADER_STAGE_VERTEX_BIT);
     VkPipelineShaderStageCreateInfo fragShaderStage = loader.createShaderStage(fragModule, VK_SHADER_STAGE_FRAGMENT_BIT);
 
+    VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStage, fragShaderStage};
 
     // dyanmic allows for speciofication during draw time for an easier setup
     std::vector<VkDynamicState> dynamicStates{
@@ -695,9 +696,36 @@ void Vulkan::createGraphicsPipeline(){
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 
+
+
     if(vkCreatePipelineLayout(vkObjs.Ldevice, &pipelineLayoutInfo, nullptr, &vkObjs.pipelineLayout) != VK_SUCCESS){
         throw std::runtime_error("failed to crate pipeline layout");
     }
+
+    VkGraphicsPipelineCreateInfo pipelineInfo{};
+
+    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipelineInfo.stageCount = 2;
+    pipelineInfo.pStages = shaderStages;
+
+    pipelineInfo.pVertexInputState = &vertexInputInfo;
+    pipelineInfo.pInputAssemblyState = &inputAssembly;
+    pipelineInfo.pViewportState = &viewportState;
+    pipelineInfo.pRasterizationState = &rasterizer;
+    pipelineInfo.pMultisampleState = &multiSampling;
+    pipelineInfo.pColorBlendState = &colorBlending;
+    pipelineInfo.pDynamicState = &dynamicState;
+
+    pipelineInfo.layout = vkObjs.pipelineLayout;
+
+    pipelineInfo.renderPass = vkObjs.renderPass;
+    pipelineInfo.subpass = 0;
+
+    if(vkCreateGraphicsPipelines(vkObjs.Ldevice, VK_NULL_HANDLE, 1, &pipelineInfo,nullptr, &vkObjs.graphicsPipeline) != VK_SUCCESS){
+        throw std::runtime_error("failed to create pgraphics pipeline!");
+    }
+
+
 }
 
 void Vulkan::createRenderPass(){
@@ -765,6 +793,7 @@ Vulkan::~Vulkan(){
         DestroyDebugUtilsMessengerEXT(vkObjs.instance, vkObjs.debugMessenger, nullptr);
     }
 
+    vkDestroyPipeline(vkObjs.Ldevice, vkObjs.graphicsPipeline, nullptr);
     vkDestroyPipelineLayout(vkObjs.Ldevice, vkObjs.pipelineLayout, nullptr);
     vkDestroyRenderPass(vkObjs.Ldevice, vkObjs.renderPass, nullptr);
 
