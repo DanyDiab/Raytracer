@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vulkan/vulkan_core.h>
+#include <vector>
 
 struct VulkanContext{
     VkInstance instance;
@@ -14,5 +15,7 @@ struct VulkanContext{
     VkRenderPass renderPass;
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;
+
+    std::vector<VkFramebuffer> swapChainFrameBuffers;
 
 };
