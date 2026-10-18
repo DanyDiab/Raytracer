@@ -71,6 +71,7 @@ class Vulkan{
         void createSwapChain();
         void createImageViews();
         void createGraphicsPipeline();
+        void createRenderPass();
 
         // HELPER FUNCTIONS
 

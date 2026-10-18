@@ -698,6 +698,49 @@ void Vulkan::createGraphicsPipeline(){
     if(vkCreatePipelineLayout(vkObjs.Ldevice, &pipelineLayoutInfo, nullptr, &vkObjs.pipelineLayout) != VK_SUCCESS){
         throw std::runtime_error("failed to crate pipeline layout");
     }
+}
+
+void Vulkan::createRenderPass(){
+    VkAttachmentDescription colorAttachment{};
+
+    colorAttachment.format = scInfo.swapChainImageFormat;
+    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+
+    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    VkAttachmentReference colorAttachmnetRef{};
+    colorAttachmnetRef.attachment = 0;
+    colorAttachmnetRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    VkSubpassDescription subpass{};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &colorAttachmnetRef;
+
+    VkRenderPassCreateInfo renderPassInfo{};
+
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+
+    renderPassInfo.attachmentCount = 1;
+    renderPassInfo.pAttachments = &colorAttachment;
+
+    renderPassInfo.subpassCount = 1;
+    renderPassInfo.pSubpasses = &subpass;
+
+    if(vkCreateRenderPass(vkObjs.Ldevice, &renderPassInfo, nullptr, &vkObjs.renderPass) != VK_SUCCESS){
+        throw std::runtime_error("failed to create a render pass!");
+    }
+
+
+
 
 }
 
@@ -713,6 +756,7 @@ Vulkan::Vulkan(){
     createSwapChain();
     createImageViews();
 
+    createRenderPass();
     createGraphicsPipeline();
 }
 
@@ -722,6 +766,7 @@ Vulkan::~Vulkan(){
     }
 
     vkDestroyPipelineLayout(vkObjs.Ldevice, vkObjs.pipelineLayout, nullptr);
+    vkDestroyRenderPass(vkObjs.Ldevice, vkObjs.renderPass, nullptr);
 
     for(auto imageView : scInfo.views){
         vkDestroyImageView(vkObjs.Ldevice, imageView, nullptr);
