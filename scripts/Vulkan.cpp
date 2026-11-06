@@ -433,9 +433,6 @@ void Vulkan::createLogicalDevice(){
     vkObjs.Ldevice = logicalDevice;
 }
 
-void createImageViews(){
-
-}
 
 void Vulkan::createInstance(){
 
@@ -604,6 +601,8 @@ void Vulkan::createImageViews(){
         if(vkCreateImageView(vkObjs.Ldevice, &createInfo, nullptr, &scInfo.views.at(i))!= VK_SUCCESS){
             throw std::runtime_error("failed to craete image views");;
         }
+
+        i++;
     }
 }
 
@@ -822,6 +821,7 @@ Vulkan::Vulkan(){
     createRenderPass();
     createGraphicsPipeline();
     createFrameBuffers();
+    createCommandPool();
 }
 
 Vulkan::~Vulkan(){
