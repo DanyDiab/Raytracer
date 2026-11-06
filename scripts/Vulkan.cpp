@@ -794,6 +794,19 @@ void Vulkan::createFrameBuffers(){
     }
 }
 
+void Vulkan::createCommandPool(){
+    QueueFamilyIndicies queueFamilyIndicies = findQueueFam(vkObjs.Pdevice);
+
+    VkCommandPoolCreateInfo poolInfo{};
+    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    poolInfo.queueFamilyIndex = queueFamilyIndicies.graphicsFamily.value();
+
+    if(vkCreateCommandPool(vkObjs.Ldevice, &poolInfo, nullptr, &vkObjs.commandPool) != VK_SUCCESS){
+        throw std::runtime_error("faield to create command pool");
+    }
+}
+
 Vulkan::Vulkan(){
     createWindow();
     createInstance();
@@ -815,6 +828,8 @@ Vulkan::~Vulkan(){
     if(enableValidationLayers){
         DestroyDebugUtilsMessengerEXT(vkObjs.instance, vkObjs.debugMessenger, nullptr);
     }
+
+    vkDestroyCommandPool(vkObjs.Ldevice, vkObjs.commandPool, nullptr);
 
     for(auto frameBuffer : vkObjs.swapChainFrameBuffers){
         vkDestroyFramebuffer(vkObjs.Ldevice, frameBuffer, nullptr);

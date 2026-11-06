@@ -73,6 +73,7 @@ class Vulkan{
         void createGraphicsPipeline();
         void createRenderPass();
         void createFrameBuffers();
+        void createCommandPool();
 
 
         // HELPER FUNCTIONS

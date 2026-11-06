@@ -13,6 +13,7 @@ struct VulkanContext{
     VkSurfaceKHR surface;
     VkSwapchainKHR swapChain;
     VkRenderPass renderPass;
+    VkCommandPool commandPool;
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;
 
