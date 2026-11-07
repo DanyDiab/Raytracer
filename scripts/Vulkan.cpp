@@ -762,6 +762,18 @@ void Vulkan::createRenderPass(){
     renderPassInfo.subpassCount = 1;
     renderPassInfo.pSubpasses = &subpass;
 
+    VkSubpassDependency dependency{};
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.srcAccessMask = 0;
+
+    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+    renderPassInfo.dependencyCount = 1;
+    renderPassInfo.pDependencies = &dependency;
+
     if(vkCreateRenderPass(vkObjs.Ldevice, &renderPassInfo, nullptr, &vkObjs.renderPass) != VK_SUCCESS){
         throw std::runtime_error("failed to create a render pass!");
     }
@@ -874,6 +886,79 @@ void Vulkan::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIn
 
 }
 
+
+void Vulkan::drawFrame(){
+    vkWaitForFences(vkObjs.Ldevice, 1, &vkObjs.inFlightFence, VK_TRUE, UINT64_MAX);
+
+    vkResetFences(vkObjs.Ldevice, 1, &vkObjs.inFlightFence);
+
+    uint32_t imageIndex;
+    vkAcquireNextImageKHR(vkObjs.Ldevice, vkObjs.swapChain,UINT64_MAX, vkObjs.imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+
+    // no flags
+    vkResetCommandBuffer(vkObjs.commandBuffer, 0);
+
+    recordCommandBuffer(vkObjs.commandBuffer, imageIndex);
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+    VkSemaphore waitSemaphores[] = {vkObjs.imageAvailableSemaphore};
+    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pWaitSemaphores = waitSemaphores;
+    submitInfo.pWaitDstStageMask = waitStages;
+
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &vkObjs.commandBuffer;
+
+    VkSemaphore signalSemphores[] = {vkObjs.renderFinishedSemaphore};
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = signalSemphores;
+
+    if(vkQueueSubmit(vkObjs.graphicQueue, 1, &submitInfo, vkObjs.inFlightFence) != VK_SUCCESS){
+        throw std::runtime_error("failed to submit draw command buffer!");
+    }
+
+    VkPresentInfoKHR presentInfo{};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = signalSemphores;
+
+    VkSwapchainKHR swapChains[] = {vkObjs.swapChain};
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = swapChains;
+    presentInfo.pImageIndices = &imageIndex;
+
+    vkQueuePresentKHR(vkObjs.presentQueue, &presentInfo);
+
+
+
+}
+
+void Vulkan::createSyncObjects(){
+    VkSemaphoreCreateInfo semaphoreInfo{};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    VkFenceCreateInfo fenceInfo{};
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    // start signaled to run the first frame
+    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    if(vkCreateSemaphore(vkObjs.Ldevice, &semaphoreInfo, nullptr, &vkObjs.imageAvailableSemaphore) != VK_SUCCESS ||
+        vkCreateSemaphore(vkObjs.Ldevice, &semaphoreInfo, nullptr, &vkObjs.renderFinishedSemaphore) != VK_SUCCESS){
+        throw std::runtime_error("failed to create semaphores!");
+    }
+
+    if(vkCreateFence(vkObjs.Ldevice, &fenceInfo, nullptr, &vkObjs.inFlightFence) != VK_SUCCESS){
+        throw std::runtime_error("failed to create fence!");
+    }
+
+}
+
+
 Vulkan::Vulkan(){
     createWindow();
     createInstance();
@@ -891,12 +976,18 @@ Vulkan::Vulkan(){
     createFrameBuffers();
     createCommandPool();
     createCommandBuffer();
+    createSyncObjects();
 }
 
 Vulkan::~Vulkan(){
     if(enableValidationLayers){
         DestroyDebugUtilsMessengerEXT(vkObjs.instance, vkObjs.debugMessenger, nullptr);
     }
+
+    vkDestroySemaphore(vkObjs.Ldevice, vkObjs.imageAvailableSemaphore, nullptr);
+    vkDestroySemaphore(vkObjs.Ldevice, vkObjs.renderFinishedSemaphore, nullptr);
+
+    vkDestroyFence(vkObjs.Ldevice, vkObjs.inFlightFence, nullptr);
 
     vkDestroyCommandPool(vkObjs.Ldevice, vkObjs.commandPool, nullptr);
 
@@ -925,6 +1016,7 @@ int main(){
 
     while (!glfwWindowShouldClose(vk.window)) {
         glfwPollEvents();
+        vk.drawFrame();
     }
     return 0;
 

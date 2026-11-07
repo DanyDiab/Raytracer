@@ -20,4 +20,8 @@ struct VulkanContext{
 
     std::vector<VkFramebuffer> swapChainFrameBuffers;
 
+
+    VkSemaphore imageAvailableSemaphore;
+    VkSemaphore renderFinishedSemaphore;
+    VkFence inFlightFence;
 };

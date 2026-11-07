@@ -48,6 +48,8 @@ class Vulkan{
 
         Vulkan();
         ~Vulkan();
+
+        void drawFrame();
     private:
         // vars
         VulkanContext vkObjs;
@@ -77,6 +79,8 @@ class Vulkan{
         void createCommandPool();
         void createCommandBuffer();
         void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+        void createSyncObjects();
+
 
 
         // HELPER FUNCTIONS
