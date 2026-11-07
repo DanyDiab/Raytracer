@@ -1,4 +1,5 @@
 #include <GLFW/glfw3.h>
+#include <cstdint>
 #include <vulkan/vk_platform.h>
 #include <vulkan/vulkan.h>
 #include <optional>
@@ -74,6 +75,8 @@ class Vulkan{
         void createRenderPass();
         void createFrameBuffers();
         void createCommandPool();
+        void createCommandBuffer();
+        void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
 
         // HELPER FUNCTIONS

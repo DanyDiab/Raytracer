@@ -14,6 +14,7 @@ struct VulkanContext{
     VkSwapchainKHR swapChain;
     VkRenderPass renderPass;
     VkCommandPool commandPool;
+    VkCommandBuffer commandBuffer;
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;
 
