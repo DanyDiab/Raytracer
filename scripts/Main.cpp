@@ -32,7 +32,7 @@ int main(int argc, char** argv){
         .height = 540
     };
 
-    Camera cam(vi, glm::vec3(0.0f, 60.0f, 160.0f), glm::quat(glm::vec3(glm::radians(-8.0f), glm::radians(90.0f), 0.0f)));
+    Camera cam(vi, glm::vec3(0.0f, 60.0f, 160.0f), glm::quat(glm::vec3(glm::radians(15.0f), glm::radians(90.0f), 0.0f)));
 
 
     Raytracer::Sphere ground = Raytracer::Sphere{
@@ -106,7 +106,7 @@ int main(int argc, char** argv){
     shapeList.push_back(mirror2Hit);
 
 
-    std::vector<Raytracer::Triangle> meshTris = FileOps::ReadInObj("./models/bunny.obj");
+    std::vector<Raytracer::Triangle> meshTris = FileOps::ReadInObj("./models/stanford-bunny.obj");
 
     Mesh::Mesh mesh;
     mesh.triangles = meshTris;
@@ -115,7 +115,7 @@ int main(int argc, char** argv){
 
     meshTrans.position = glm::vec3(-20, 0, 0);
     meshTrans.rotation = glm::vec3(glm::vec3(0, glm::radians(150.0f), 0));
-    meshTrans.scale = glm::vec3(55.0f);
+    meshTrans.scale = glm::vec3(1000.0f);
 
     mesh.transform = meshTrans;
 

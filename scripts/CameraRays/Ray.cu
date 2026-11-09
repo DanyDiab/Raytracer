@@ -17,7 +17,7 @@ __device__ Raytracer::HitRecord Raytracer::Ray::RayIntersectShapes(Raytracer::Hi
     Raytracer::HitRecord closestRecord;
     closestRecord.hitDistance = -1.0f;
     closestRecord.normal = glm::vec3(0);
-    
+
     // found closer hit point
     for(int i = 0; i < numHittables; i++){
         Raytracer::Hittable& shape = hittables[i];
@@ -61,21 +61,21 @@ __device__ Raytracer::Ray Raytracer::generateRayWithDeviation(CameraRayGeneratio
             // add .5 to be in the middle of the pixel
             float NDCx = (static_cast<float>(rasterX) + .5f) / camInfo.width;
             float NDCy = (static_cast<float>(rasterY) + .5f) / camInfo.height;
-            
+
             float screenSpaceX = (NDCx * 2) - 1;
             // flip Y to match screen space
             float screenSpaceY = 1 - (NDCy * 2);
-            
+
             float aspectRatio = static_cast<float>(camInfo.width) / camInfo.height;
-            
+
             float fovRadians = glm::radians(camInfo.fov);
             float fovScaler = tan(fovRadians * .5f);
 
 
             float pixelX = screenSpaceX * aspectRatio * fovScaler;
             float pixelY = screenSpaceY * fovScaler;
-
-            glm::vec3 camPlanePos = glm::normalize(glm::vec3(camInfo.forward + (camInfo.right * pixelX) + (camInfo.up * pixelY)));
+            glm::vec3 notNormal = glm::vec3(camInfo.forward + (camInfo.right * pixelX) + (camInfo.up * pixelY));
+            glm::vec3 camPlanePos = glm::normalize(notNormal);
 
             glm::vec3 origin = camInfo.camPos;
             glm::vec3 dir = camPlanePos;
@@ -115,8 +115,8 @@ __device__ glm::vec3 metallicScatterDir(glm::vec3 incidentAngle, glm::vec3 norma
 }
 
 __device__ float shlickReflectance(float IOR, float cos){
-    
-     
+
+
     float clampedCos = glm::clamp(cos, 0.0f, 1.0f);
     float r0 = (1 - IOR) / (1 + IOR);
 
@@ -128,7 +128,7 @@ __device__ float shlickReflectance(float IOR, float cos){
 // IOR = index of refraction
 // flag indicaets if refraction was allowed or not
 __device__ glm::vec4 dielctricScatterDir(float IOR, glm::vec3 incidentAngle, glm::vec3 normal, curandState_t* state){
-        
+
     float rawCos = glm::dot(incidentAngle, normal);
 
     glm::vec3 correctedNormal = normal;
@@ -148,7 +148,7 @@ __device__ glm::vec4 dielctricScatterDir(float IOR, glm::vec3 incidentAngle, glm
     }
 
     float angleOfIncidence = glm::min(glm::dot(-incidentAngle, correctedNormal), 1.0f);
-    
+
     glm::vec3 perp = etaDiff * (incidentAngle + angleOfIncidence * correctedNormal);
 
     // check total internal reflection
@@ -204,7 +204,3 @@ __device__ glm::vec4 Raytracer::Ray::determineScatterDirection(Raytracer::HitRec
         return glm::vec4(glm::normalize(dir), -1.0f);
     }
 }
-
-
-
-

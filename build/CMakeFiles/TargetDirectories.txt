@@ -1,3 +1,0 @@
-/home/dany/Projects/Raytracer/build/CMakeFiles/Raytracer.dir
-/home/dany/Projects/Raytracer/build/CMakeFiles/edit_cache.dir
-/home/dany/Projects/Raytracer/build/CMakeFiles/rebuild_cache.dir

@@ -48,11 +48,15 @@ FaceNormalIndex readInFace(const std::string& text) {
     std::vector<std::string> parts1 = split(token1, '/');
     std::vector<std::string> parts2 = split(token2, '/');
 
+
     result.faceIndex = glm::vec3(
         std::stof(parts0[0]),
         std::stof(parts1[0]),
         std::stof(parts2[0])
     );
+
+    // skip if no normals
+    if(parts0.size() == 1 || parts1.size() == 1 || parts2.size() == 2) return result;
 
     result.normalIndex = glm::vec3(
         std::stof(parts0[2]),
@@ -70,7 +74,7 @@ std::vector<Raytracer::Triangle> FileOps::ReadInObj(std::string filePath){
     std::ifstream objFile(filePath);
 
     std::vector<Raytracer::Triangle> triangles;
-    
+
     if(!objFile.is_open()){
         std::cerr << "could not open OBJ file at " << filePath;
         return triangles;
@@ -104,7 +108,7 @@ std::vector<Raytracer::Triangle> FileOps::ReadInObj(std::string filePath){
                 triangle.p1 = vertices.at(fnIndex.faceIndex.x - 1);
                 triangle.p2 = vertices.at(fnIndex.faceIndex.y - 1);
                 triangle.p3 = vertices.at(fnIndex.faceIndex.z - 1);
-                
+
                 if(!vNormals.empty()){
                     triangle.p1Normal = vNormals.at(fnIndex.normalIndex.x - 1);
                     triangle.p2Normal = vNormals.at(fnIndex.normalIndex.y - 1);

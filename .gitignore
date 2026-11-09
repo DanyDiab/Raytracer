@@ -1,2 +1,4 @@
 [Mm]odels/
 [Bb]uild/
+[Bb]uild-debug/
+img.*

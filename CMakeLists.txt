@@ -56,7 +56,8 @@ target_include_directories(Raytracer PRIVATE
     "${HEADERS_DIR}/Util"
 )
 
-target_compile_options(Raytracer PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--relocatable-device-code=true>)
+target_compile_options(Raytracer PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--relocatable-device-code=true --expt-relaxed-constexpr>)
+target_compile_options(Raytracer PRIVATE $<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CONFIG:Debug>>:-G>)
 
 target_link_libraries(Raytracer PRIVATE glfw CUDA::cudart)
 

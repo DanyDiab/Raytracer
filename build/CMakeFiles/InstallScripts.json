@@ -1,7 +1,0 @@
-{
-	"InstallScripts" : 
-	[
-		"/home/dany/Projects/Raytracer/build/cmake_install.cmake"
-	],
-	"Parallel" : false
-}

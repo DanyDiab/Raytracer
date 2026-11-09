@@ -1,1 +1,0 @@
--I/home/dany/Projects/Raytracer/scripts/headers/Camera -I/home/dany/Projects/Raytracer/scripts/headers/Hittables -I/home/dany/Projects/Raytracer/scripts/headers/RayHits -I/home/dany/Projects/Raytracer/scripts/headers/Util -isystem "/opt/cuda/targets/x86_64-linux/include"
