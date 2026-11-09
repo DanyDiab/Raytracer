@@ -3,6 +3,7 @@
 #include <glm/exponential.hpp>
 #include <glm/ext/quaternion_geometric.hpp>
 #include <glm/geometric.hpp>
+#include <glm/trigonometric.hpp>
 
 #include "../headers/RayHits/Ray.cuh"
 #include "../headers/Hittables/Hittable.cuh"

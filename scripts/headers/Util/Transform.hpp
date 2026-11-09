@@ -4,7 +4,6 @@
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/vec3.hpp>
-#include <glm/gtx/quaternion.hpp>
 
 namespace Raytracer{
     struct Transform{

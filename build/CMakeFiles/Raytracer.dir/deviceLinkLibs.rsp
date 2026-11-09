@@ -1,0 +1,1 @@
+  -L"/usr/lib/gcc/x86_64-pc-linux-gnu/16"   -ldl /usr/lib/librt.a -latomic_asneeded -lcudadevrt -lcudart_static -lrt -lpthread 

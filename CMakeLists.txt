@@ -10,7 +10,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_SEPARATE_COMPILATION ON)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 
 find_package(glfw3 3.3.10 REQUIRED)
@@ -33,7 +32,7 @@ add_executable(Raytracer
     "${HITTABLES_DIR}/Sphere.cu"
     "${HITTABLES_DIR}/Triangle.cu"
     "${HITTABLES_DIR}/Mesh.cpp"
-    
+
     "${MISC_DIR}/PRNG.cu"
     "${MISC_DIR}/Window.cpp"
     "${MISC_DIR}/ObjReader.cpp"
@@ -43,7 +42,7 @@ add_executable(Raytracer
 
 
 )
-set_target_properties(Raytracer PROPERTIES 
+set_target_properties(Raytracer PROPERTIES
     CUDA_SEPARATE_COMPILATION ON
     CUDA_RESOLVE_DEVICE_SYMBOLS ON
     LINKER_LANGUAGE CUDA
@@ -62,4 +61,3 @@ target_compile_options(Raytracer PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--relocatabl
 target_link_libraries(Raytracer PRIVATE glfw CUDA::cudart)
 
 target_compile_options(Raytracer PRIVATE -g)
-

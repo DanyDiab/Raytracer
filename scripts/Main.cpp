@@ -1,8 +1,8 @@
+#include "headers/Hittables/Hittable.cuh"
 #include "headers/Hittables/Triangle.cuh"
 #include "headers/Util/PpmWriter.hpp"
 #include "headers/Util/Transform.hpp"
 #include "headers/Util/Window.hpp"
-#include "headers/Hittables/Hittable.cuh"
 #include "headers/Camera/Camera.hpp"
 #include "headers/RayHits/Ray.cuh"
 #include "headers/Hittables/Sphere.cuh"
@@ -15,6 +15,7 @@
 #include <glm/trigonometric.hpp>
 #include <iostream>
 #include <memory>
+#include <stdexcept>
 #include <vector>
 
 
@@ -22,7 +23,7 @@
 int main(int argc, char** argv){
     Window window;
     if(!window.createWindow()){
-        std::cerr << "Something went wrong while making the window\n";
+        throw std::runtime_error("Something went wrong while making the window");
     }
     ViewportInfo vi{
         .near = .01f,
@@ -33,16 +34,16 @@ int main(int argc, char** argv){
 
     Camera cam(vi, glm::vec3(0.0f, 60.0f, 160.0f), glm::quat(glm::vec3(glm::radians(-8.0f), glm::radians(90.0f), 0.0f)));
 
-    
+
     Raytracer::Sphere ground = Raytracer::Sphere{
         .radius = 10000.0f,
         .position = glm::vec3(0.0f, -10010.0f, 0.0f),
     };
 
-    // 16, 33, 17
+    // 16, 33, 170
     Raytracer::Hittable groundHit = Raytracer::Hittable(ground);
     groundHit.mat = {
-        .albedo = glm::vec3(16.0f/255.0f, 33.0f/255.0f, 17.0f/255.0f), 
+        .albedo = glm::vec3(16.0f/255.0f, 33.0f/255.0f, 17.0f/255.0f),
     };
 
 
@@ -54,7 +55,7 @@ int main(int argc, char** argv){
 // 27, 22, 33
     Raytracer::Hittable sphereHit = Raytracer::Hittable(sphere);
     sphereHit.mat = {
-        .albedo = glm::vec3(27.0f / 255.0f, 22.0 / 255.0f, 33 / 255.0f), 
+        .albedo = glm::vec3(27.0f / 255.0f, 22.0 / 255.0f, 33 / 255.0f),
         .metallic = 0.0f,
         .roughness = 0.8f
     };
@@ -68,11 +69,11 @@ int main(int argc, char** argv){
 // 27, 22, 33
     Raytracer::Hittable mirror1Hit = Raytracer::Hittable(mirror1);
     mirror1Hit.mat = {
-        .albedo = glm::vec3(.8f,.8f,.8f), 
+        .albedo = glm::vec3(.8f,.8f,.8f),
         .metallic = 1.0f
     };
 
-    
+
     Raytracer::Triangle mirror2 = Raytracer::Triangle{
         .p1 = glm::vec3(150.0f, 20.0f, 300.0f),
         .p2 = glm::vec3(140.0f, 20.0f, -300.0f),
@@ -82,12 +83,12 @@ int main(int argc, char** argv){
 // 27, 22, 33
     Raytracer::Hittable mirror2Hit = Raytracer::Hittable(mirror2);
     mirror2Hit.mat = {
-        .albedo = glm::vec3(.8f,.8f,.8f), 
+        .albedo = glm::vec3(.8f,.8f,.8f),
         .metallic = 1.0f
     };
 
     Raytracer::Sphere sun = Raytracer::Sphere{
-        .radius = 5000.0f, 
+        .radius = 5000.0f,
         .position = glm::vec3(0.0f, 10000.0f, 0.0f),
     };
 
@@ -139,6 +140,3 @@ int main(int argc, char** argv){
 
     window.destroyWindow();
 }
-
-
-

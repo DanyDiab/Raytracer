@@ -1,9 +1,9 @@
 #pragma once
 
+#include <cuda_runtime.h>
 #include "../RayHits/HitRecord.hpp"
 #include "../RayHits/Ray.cuh"
 #include "Material.hpp"
-#include "../Util/Transform.hpp"
 #include "../Hittables/Sphere.cuh"
 #include "../Hittables/Triangle.cuh"
 
@@ -32,7 +32,7 @@ namespace Raytracer{
             Material mat;
             __device__  Raytracer::HitRecord rayCollide(const Raytracer::Ray ray) const;
 
-            
+
             ShapeType shapeType;
 
 
