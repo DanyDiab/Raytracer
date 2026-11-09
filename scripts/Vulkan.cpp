@@ -16,7 +16,8 @@
 #include <iostream>
 #include <fmt/format.h>
 
-#include "headers/Vulkan.hpp"
+#include "headers/Vulkan/VulkanContext.hpp"
+#include "headers/Vulkan/Vulkan.hpp"
 
 
 // eventually make this a class?
@@ -365,7 +366,8 @@ void Vulkan::pickPhysicalDevice(){
         }
     }
 
-    std::cout << "picked GPU " << bestScore.name;
+    std::cout << "picked GPU " << bestScore.name << std::endl;
+
 
     if(physicalDevice == VK_NULL_HANDLE){
         std::cerr <<  "NO SUITABLE GPU | WORKS WITH VULKAN, but daddy wants M O R E requirements";
@@ -980,6 +982,8 @@ Vulkan::Vulkan(){
 }
 
 Vulkan::~Vulkan(){
+    vkDeviceWaitIdle(vkObjs.Ldevice);
+
     if(enableValidationLayers){
         DestroyDebugUtilsMessengerEXT(vkObjs.instance, vkObjs.debugMessenger, nullptr);
     }
@@ -1018,6 +1022,7 @@ int main(){
         glfwPollEvents();
         vk.drawFrame();
     }
+
     return 0;
 
 }
