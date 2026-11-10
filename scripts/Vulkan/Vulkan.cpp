@@ -16,11 +16,9 @@
 #include <iostream>
 #include <fmt/format.h>
 
-#include "headers/Vulkan/VulkanContext.hpp"
-#include "headers/Vulkan/Vulkan.hpp"
+#include "../headers/Vulkan/VulkanContext.hpp"
+#include "../headers/Vulkan/Vulkan.hpp"
 
-
-// eventually make this a class?
 
 #ifdef NDEBUG
     const bool enableValidationLayers = false;

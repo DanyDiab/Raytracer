@@ -23,6 +23,9 @@ set(HEADERS_DIR "${SCRIPTSDIR}/headers")
 
 add_executable(Raytracer
     "${SCRIPTSDIR}/Main.cpp"
+    "${SCRIPTSDIR}/Scenes/SceneLoader.cpp"
+    "${SCRIPTSDIR}/Scenes/BVHTestScene.cpp"
+    "${SCRIPTSDIR}/Scenes/BunnyMirrorScene.cpp"
 
     "${CAMERA_RAYS_DIR}/Camera.cu"
     "${CAMERA_RAYS_DIR}/Ray.cu"

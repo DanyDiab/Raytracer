@@ -12,7 +12,7 @@ __device__ glm::vec3 TriangleFaceNormal(const Raytracer::Triangle triangle){
     glm::vec3 AC = triangle.p3 - triangle.p1;
 
     glm::vec3 ortho = glm::cross(AB, AC);
- 
+
     return glm::normalize(ortho);
 }
 
@@ -122,6 +122,3 @@ __device__ float TriangleRayCollide(const Raytracer::Triangle triangle, const Ra
 
     return dist;
 }
-
-
-

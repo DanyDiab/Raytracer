@@ -22,7 +22,7 @@ class Camera{
         // intilize at 0,0,0, looking down the positive Z (0,0,1)
         Camera(ViewportInfo vi);
 
-        std::unique_ptr<ViewportInfo> viewportInfo;
+        ViewportInfo viewportInfo;
 
         glm::vec3 viewportPos;
         std::vector<glm::vec3> Render(const std::vector<Raytracer::Hittable> objects, int renderingFlags);

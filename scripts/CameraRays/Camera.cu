@@ -42,7 +42,7 @@ Camera::Camera(ViewportInfo vi) {
         .scale = glm::vec3(1,1,1)
     };
 
-    viewportInfo = std::make_unique<ViewportInfo>(vi);
+    viewportInfo = vi;
 }
 
 Camera::Camera(ViewportInfo vi, glm::vec3 pos, glm::quat rot){
@@ -52,7 +52,7 @@ Camera::Camera(ViewportInfo vi, glm::vec3 pos, glm::quat rot){
         .scale = glm::vec3(1,1,1)
     };
 
-    viewportInfo = std::make_unique<ViewportInfo>(vi);
+    viewportInfo = vi;
 }
 
 __device__ glm::vec3 RayHittableCollision(Raytracer::Ray ray, Raytracer::Hittable* hittables, int numHittables, curandState_t* state, glm::vec3 skyColor, int index, int renderingFlags){
@@ -186,8 +186,8 @@ std::vector<glm::vec3> Camera::Render(const std::vector<Raytracer::Hittable> hit
     glm::vec3 skyColor = glm::vec3(155 / 255.0,203 / 255.0,242 / 255.0);
     // glm::vec3 skyColor = glm::vec3(0);
 
-    int width = viewportInfo->width;
-    int height = viewportInfo->height;
+    int width = viewportInfo.width;
+    int height = viewportInfo.height;
     int numRays = width * height;
 
     float left = transform.position.x - (width / 2.0f);

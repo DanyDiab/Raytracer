@@ -19,7 +19,7 @@ int main(int argc, char** argv){
         std::cerr << "Something went wrong while making the window\n";
     }
 
-    Scenes::SceneList sceneToLoad = Scenes::SceneList::BVHTEST;
+    Scenes::SceneList sceneToLoad = Scenes::SceneList::BUNNYMIRROR;
 
     Scenes::SceneInfo sceneInfo = Scenes::LoadScene(sceneToLoad);
 
@@ -35,6 +35,3 @@ int main(int argc, char** argv){
 
     window.destroyWindow();
 }
-
-
-
