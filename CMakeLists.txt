@@ -14,18 +14,34 @@ set(CMAKE_CUDA_SEPARATE_COMPILATION ON)
 
 find_package(glfw3 3.3.10 REQUIRED)
 find_package(CUDAToolkit REQUIRED)
+find_package(VulkanHeaders REQUIRED)
+find_package(Vulkan REQUIRED)
 
-set(SCRIPTSDIR "${CMAKE_CURRENT_SOURCE_DIR}/scripts")
+set(SCRIPTSDIR "${CMAKE_CURRENT_SOURCE_DIR}/Scripts")
 set(CAMERA_RAYS_DIR "${SCRIPTSDIR}/CameraRays")
 set(HITTABLES_DIR "${SCRIPTSDIR}/Hittables")
 set(MISC_DIR "${SCRIPTSDIR}/Misc")
-set(HEADERS_DIR "${SCRIPTSDIR}/headers")
+set(VULKAN_DIR "${SCRIPTSDIR}/Vulkan")
+set(SCENE_DIR "${SCRIPTSDIR}/Scenes")
+set(SHADER_DIR "${SCRIPTSDIR}/Shaders")
+set(HEADERS_DIR "${SCRIPTSDIR}/Headers")
 
 add_executable(Raytracer
     "${SCRIPTSDIR}/Main.cpp"
-    "${SCRIPTSDIR}/Scenes/SceneLoader.cpp"
-    "${SCRIPTSDIR}/Scenes/BVHTestScene.cpp"
-    "${SCRIPTSDIR}/Scenes/BunnyMirrorScene.cpp"
+    "${SCENE_DIR}/SceneLoader.cpp"
+    "${SCENE_DIR}/BVHTestScene.cpp"
+    "${SCENE_DIR}/BunnyMirrorScene.cpp"
+
+    "${SHADER_DIR}/ShaderLoader.cpp"
+    "${VULKAN_DIR}/Vulkan.cpp"
+    "${VULKAN_DIR}/VulkanWindow.cpp"
+    "${VULKAN_DIR}/VulkanInstance.cpp"
+    "${VULKAN_DIR}/VulkanSurface.cpp"
+    "${VULKAN_DIR}/VulkanDevice.cpp"
+    "${VULKAN_DIR}/VulkanSwapChain.cpp"
+    "${VULKAN_DIR}/VulkanPipeline.cpp"
+    "${VULKAN_DIR}/VulkanRenderer.cpp"
+    "${VULKAN_DIR}/VulkanQueries.cpp"
 
     "${CAMERA_RAYS_DIR}/Camera.cu"
     "${CAMERA_RAYS_DIR}/Ray.cu"
@@ -62,6 +78,6 @@ target_include_directories(Raytracer PRIVATE
 target_compile_options(Raytracer PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--relocatable-device-code=true --expt-relaxed-constexpr>)
 target_compile_options(Raytracer PRIVATE $<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CONFIG:Debug>>:-G>)
 
-target_link_libraries(Raytracer PRIVATE glfw CUDA::cudart)
+target_link_libraries(Raytracer PRIVATE glfw CUDA::cudart Vulkan::Vulkan)
 
 target_compile_options(Raytracer PRIVATE -g)
