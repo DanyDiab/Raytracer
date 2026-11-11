@@ -20,6 +20,11 @@
     {
       "name": "release",
       "configurePreset": "release"
+    },
+    {
+      "name": "shaders",
+      "configurePreset": "release",
+      "targets": ["Shaders"]
     }
   ]
 }

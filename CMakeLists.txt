@@ -80,4 +80,26 @@ target_compile_options(Raytracer PRIVATE $<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CONF
 
 target_link_libraries(Raytracer PRIVATE glfw CUDA::cudart Vulkan::Vulkan)
 
+set(SHADER_SOURCES
+    "${SHADER_DIR}/tri.vert"
+    "${SHADER_DIR}/tri.frag"
+)
+
+set(SHADER_BINARIES "")
+foreach(SHADER ${SHADER_SOURCES})
+    get_filename_component(SHADER_NAME ${SHADER} NAME)
+    set(SPIRV "${SHADER_DIR}/${SHADER_NAME}.spv")
+
+    add_custom_command(
+        OUTPUT ${SPIRV}
+        COMMAND ${Vulkan_GLSLC_EXECUTABLE} ${SHADER} -o ${SPIRV}
+        DEPENDS ${SHADER}
+        COMMENT "Compiling ${SHADER_NAME}"
+    )
+    list(APPEND SHADER_BINARIES ${SPIRV})
+endforeach()
+
+add_custom_target(Shaders DEPENDS ${SHADER_BINARIES})
+add_dependencies(Raytracer Shaders)
+
 target_compile_options(Raytracer PRIVATE -g)
